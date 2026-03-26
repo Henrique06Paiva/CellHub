@@ -1,0 +1,54 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Funções auxiliares
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isMembro(cellId) {
+      let user = getUserData();
+      return user.role == "membro" && user.cellId == cellId;
+    }
+    
+    function isLider(cellId) {
+      let user = getUserData();
+      return user.role == "lider" && user.cellId == cellId;
+    }
+    
+    function isDiscipulador(networkId) {
+      let user = getUserData();
+      return user.role == "discipulador" && user.networkId == networkId;
+    }
+
+    // Regras da coleção 'users'
+    match /users/{userId} {
+      // Usuários podem ler e escrever seus próprios dados
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Líderes podem ler dados dos membros da sua célula
+      allow read: if request.auth != null && getUserData().role == "lider" && resource.data.cellId == getUserData().cellId;
+      // Discipuladores podem ler dados de todos na sua rede
+      allow read: if request.auth != null && getUserData().role == "discipulador" && resource.data.networkId == getUserData().networkId;
+    }
+
+    // Regras da coleção 'cells'
+    match /cells/{cellId} {
+      // Membros podem apenas ler os dados da sua célula
+      allow read: if request.auth != null && (isMembro(cellId) || isLider(cellId));
+      // Líderes podem atualizar a sua própria célula
+      allow update: if request.auth != null && isLider(cellId);
+      // Discipuladores podem ler e atualizar qualquer célula da sua rede
+      allow read, update: if request.auth != null && isDiscipulador(resource.data.networkId);
+    }
+
+    // Regras da coleção 'reports' (Relatórios de presença)
+    match /reports/{reportId} {
+      // Líderes podem criar/ler relatórios da sua célula
+      allow create, read: if request.auth != null && isLider(request.resource.data.cellId);
+      // Discipuladores podem ler todos os relatórios da sua rede (assumindo que o relatório tenha networkId)
+      allow read: if request.auth != null && isDiscipulador(resource.data.networkId);
+    }
+  }
+}
