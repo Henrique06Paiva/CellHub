@@ -3,7 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyDaCffAgXkUjUH7Zlw41e7Uv7Ysua0-GTQ",
   authDomain: "cellhub-henrique-dev.firebaseapp.com",
   projectId: "cellhub-henrique-dev",

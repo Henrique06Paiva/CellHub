@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Mail, Lock, AlertCircle, ArrowRight, UserCircle2 } from 'lucide-react';
+import { Mail, Lock, AlertCircle, ArrowRight, UserCircle2, User } from 'lucide-react';
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
   
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
-  // Estados para erros detalhados
+  const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [authError, setAuthError] = useState('');
@@ -19,14 +21,28 @@ const Login = () => {
 
   const validateForm = () => {
     let isValid = true;
+    setNameError('');
     setEmailError('');
     setPasswordError('');
     setAuthError('');
 
-    if (!email.trim()) {
+    const cleanEmail = email.trim();
+    const cleanName = name.trim();
+
+    if (isRegistering) {
+      if (!cleanName) {
+        setNameError('Seu nome completo é obrigatório.');
+        isValid = false;
+      } else if (cleanName.length < 3) {
+        setNameError('O nome precisa ter pelo menos 3 caracteres.');
+        isValid = false;
+      }
+    }
+
+    if (!cleanEmail) {
       setEmailError('Por favor, informe o seu e-mail.');
       isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       setEmailError('O e-mail informado não é válido.');
       isValid = false;
     }
@@ -34,30 +50,45 @@ const Login = () => {
     if (!password) {
       setPasswordError('A senha é obrigatória.');
       isValid = false;
+    } else if (isRegistering) {
+      // Padrão de negócio profissional para senhas
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(password)) {
+        setPasswordError('Sua senha deve ter pelo menos 8 caracteres, 1 letra maiúscula, 1 minúscula, 1 número e 1 especial (@$!%*?&).');
+        isValid = false;
+      }
     }
 
     return isValid;
   };
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      await login(email, password);
+      const cleanEmail = email.trim();
+      const cleanName = name.trim();
+
+      if (isRegistering) {
+        await register(cleanEmail, password, cleanName);
+      } else {
+        await login(cleanEmail, password);
+      }
       navigate('/');
     } catch (err) {
       console.error('Erro de Autenticação:', err);
       
-      // Mapeando erros visuais elegantes e focados no usuário final
       switch (err.code) {
         case 'auth/invalid-credential':
         case 'auth/user-not-found':
         case 'auth/wrong-password':
           setAuthError('E-mail ou senha incorretos. Verifique e tente novamente.');
+          break;
+        case 'auth/email-already-in-use':
+          setAuthError('Este e-mail já está cadastrado. Volte e faça o login.');
           break;
         case 'auth/invalid-email':
           setAuthError('O endereço de e-mail fornecido não é válido.');
@@ -72,7 +103,6 @@ const Login = () => {
           setAuthError('Configuração pendente: Ative o provedor de "E-mail/Senha" no Firebase Console.');
           break;
         default:
-          // Esconde a mensagem feia do Firebase e mostra algo amigável para qualquer outro erro misterioso
           setAuthError('Não foi possível entrar no sistema agora. Tente novamente mais tarde.');
       }
     } finally {
@@ -80,122 +110,215 @@ const Login = () => {
     }
   };
 
+  const toggleMode = () => {
+    setIsRegistering(!isRegistering);
+    setAuthError('');
+    setNameError('');
+    setEmailError('');
+    setPasswordError('');
+  };
+
   return (
-    <div className="app-container" style={{ 
+    <div style={{ 
+      display: 'flex',
       alignItems: 'center', 
       justifyContent: 'center', 
-      background: 'linear-gradient(135deg, #f0f4f8 0%, #e0eaf5 100%)', 
-      width: '100vw', 
-      padding: '2rem' 
+      background: 'var(--bg-color)', 
+      width: '100vw',
+      minHeight: '100vh',
+      padding: '2rem',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
+      {/* Background Orbs */}
+      <div style={{
+        position: 'absolute', top: '-10%', left: '-5%', width: '40vw', height: '40vw', background: 'rgba(37, 99, 235, 0.08)', borderRadius: '50%', filter: 'blur(80px)', zIndex: 0
+      }} />
+      <div style={{
+        position: 'absolute', bottom: '-15%', right: '-5%', width: '50vw', height: '50vw', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '50%', filter: 'blur(100px)', zIndex: 0
+      }} />
+
       <div className="glass-panel animate-fade-in" style={{ 
+        position: 'relative',
+        zIndex: 1,
         padding: '3.5rem 3rem', 
         maxWidth: '440px', 
         width: '100%', 
         textAlign: 'center',
-        background: '#ffffff',
-        boxShadow: '0 20px 40px rgba(37, 99, 235, 0.08)'
+        background: 'rgba(255, 255, 255, 0.65)',
+        boxShadow: '0 25px 50px -12px rgba(37, 99, 235, 0.15)',
+        border: '1px solid rgba(255, 255, 255, 0.8)',
+        borderRadius: '24px',
+        WebkitBackdropFilter: 'blur(24px)',
+        backdropFilter: 'blur(24px)'
       }}>
         
         <div style={{ 
           display: 'flex', 
           justifyContent: 'center', 
-          marginBottom: '1rem', 
+          marginBottom: '1.25rem', 
           color: 'var(--primary-color)',
-          background: 'rgba(37, 99, 235, 0.05)',
-          width: '80px',
-          height: '80px',
+          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.02) 100%)',
+          width: '84px',
+          height: '84px',
           borderRadius: '50%',
           alignItems: 'center',
-          margin: '0 auto 1.5rem auto'
+          margin: '0 auto 1.5rem auto',
+          boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 12px rgba(37, 99, 235, 0.1)'
         }}>
-          <UserCircle2 size={42} strokeWidth={1.5} />
+          <UserCircle2 size={44} strokeWidth={1.2} />
         </div>
         
-        <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>CellHub</h1>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '2.5rem', fontSize: '0.95rem' }}>
-          Acesse a plataforma de gerenciamento
+        <h1 style={{ fontSize: '2.25rem', marginBottom: '0.25rem', letterSpacing: '-0.02em' }}>CellHub</h1>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '2.5rem', fontSize: '0.95rem', fontWeight: '400' }}>
+          {isRegistering ? 'Crie sua conta para acessar' : 'Acesse a plataforma de gerenciamento'}
         </p>
 
         {authError && (
           <div style={{ 
             marginBottom: '1.5rem', 
             padding: '0.85rem', 
-            background: '#fef2f2', 
+            background: 'rgba(254, 242, 242, 0.8)', 
             color: 'var(--danger-color)', 
-            borderRadius: '8px', 
+            borderRadius: '12px', 
             display: 'flex', 
             alignItems: 'center', 
             gap: '0.5rem', 
             justifyContent: 'center',
             fontSize: '0.9rem',
-            border: '1px solid #fecaca',
+            border: '1px solid rgba(254, 202, 202, 0.5)',
+            backdropFilter: 'blur(8px)',
             animation: 'fadeIn 0.3s ease'
           }}>
             <AlertCircle size={18} /> {authError}
           </div>
         )}
 
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', textAlign: 'left' }} noValidate>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', textAlign: 'left' }} noValidate>
+          
+          {isRegistering && (
+            <div className="animate-fade-in">
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: '500', color: 'var(--text-main)' }}>
+                Nome Completo
+              </label>
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '1.2rem', color: nameError ? 'var(--danger-color)' : 'var(--text-muted)', transition: 'color 0.2s' }}>
+                  <User size={18} strokeWidth={nameError ? 2 : 1.5} />
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Como você se chama?"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (nameError) setNameError('');
+                  }}
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.9rem 1rem 0.9rem 3rem',
+                    background: 'rgba(248, 250, 252, 0.8)',
+                    borderColor: nameError ? 'var(--danger-color)' : 'rgba(226, 232, 240, 0.8)',
+                    boxShadow: nameError ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : 'none',
+                    borderRadius: '12px',
+                    fontSize: '0.95rem'
+                  }}
+                />
+              </div>
+              {nameError && (
+                <span style={{ color: 'var(--danger-color)', fontSize: '0.8rem', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', animation: 'fadeIn 0.2s ease' }}>
+                  {nameError}
+                </span>
+              )}
+            </div>
+          )}
+
           <div>
-            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '500', color: 'var(--text-main)' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: '500', color: 'var(--text-main)' }}>
               E-mail
             </label>
             <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '1rem', color: emailError ? 'var(--danger-color)' : 'var(--text-muted)' }}>
-                <Mail size={18} />
+              <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '1.2rem', color: emailError ? 'var(--danger-color)' : 'var(--text-muted)', transition: 'color 0.2s' }}>
+                <Mail size={18} strokeWidth={emailError ? 2 : 1.5} />
               </div>
               <input 
                 type="email" 
                 placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => {
-                  setEmail(e.target.value);
+                  setEmail(e.target.value.replace(/\s/g, '')); // Previne digitação de espaços
                   if (emailError) setEmailError('');
                 }}
                 style={{ 
                   width: '100%', 
-                  padding: '0.85rem 1rem 0.85rem 2.8rem',
-                  background: '#f8fafc',
-                  borderColor: emailError ? 'var(--danger-color)' : 'var(--border-color)',
-                  boxShadow: emailError ? '0 0 0 2px rgba(239, 68, 68, 0.1)' : 'none'
+                  padding: '0.9rem 1rem 0.9rem 3rem',
+                  background: 'rgba(248, 250, 252, 0.8)',
+                  borderColor: emailError ? 'var(--danger-color)' : 'rgba(226, 232, 240, 0.8)',
+                  boxShadow: emailError ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : 'none',
+                  borderRadius: '12px',
+                  fontSize: '0.95rem'
                 }}
               />
             </div>
             {emailError && (
-              <span style={{ color: 'var(--danger-color)', fontSize: '0.8rem', marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <span style={{ color: 'var(--danger-color)', fontSize: '0.8rem', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', animation: 'fadeIn 0.2s ease' }}>
                 {emailError}
               </span>
             )}
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '500', color: 'var(--text-main)' }}>
-              Senha
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: '500', color: 'var(--text-main)' }}>
+                Senha
+              </label>
+              {!isRegistering && (
+                <button 
+                  type="button"
+                  onClick={() => alert('Em breve: fluxo de recuperação de senha.')}
+                  style={{ 
+                    fontSize: '0.8rem', 
+                    color: 'var(--primary-color)', 
+                    fontWeight: '500',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    transition: 'color 0.2s ease, transform 0.2s ease'
+                  }}
+                  onMouseOver={(e) => e.target.style.color = 'var(--primary-hover)'}
+                  onMouseOut={(e) => e.target.style.color = 'var(--primary-color)'}
+                  onMouseDown={(e) => e.target.style.transform = 'scale(0.95)'}
+                  onMouseUp={(e) => e.target.style.transform = 'scale(1)'}
+                >
+                  Esqueceu a senha?
+                </button>
+              )}
+            </div>
             <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '1rem', color: passwordError ? 'var(--danger-color)' : 'var(--text-muted)' }}>
-                <Lock size={18} />
+              <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '1.2rem', color: passwordError ? 'var(--danger-color)' : 'var(--text-muted)', transition: 'color 0.2s' }}>
+                <Lock size={18} strokeWidth={passwordError ? 2 : 1.5} />
               </div>
               <input 
                 type="password" 
-                placeholder="••••••••"
+                placeholder={isRegistering ? "Ex: CelHub@26" : "••••••••"}
                 value={password}
                 onChange={(e) => {
-                  setPassword(e.target.value);
+                  setPassword(e.target.value.replace(/\s/g, '')); // Bloqueia espaços nas senhas
                   if (passwordError) setPasswordError('');
                 }}
                 style={{ 
                   width: '100%', 
-                  padding: '0.85rem 1rem 0.85rem 2.8rem',
-                  background: '#f8fafc',
-                  borderColor: passwordError ? 'var(--danger-color)' : 'var(--border-color)',
-                  boxShadow: passwordError ? '0 0 0 2px rgba(239, 68, 68, 0.1)' : 'none'
+                  padding: '0.9rem 1rem 0.9rem 3rem',
+                  background: 'rgba(248, 250, 252, 0.8)',
+                  borderColor: passwordError ? 'var(--danger-color)' : 'rgba(226, 232, 240, 0.8)',
+                  boxShadow: passwordError ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : 'none',
+                  borderRadius: '12px',
+                  fontSize: '0.95rem'
                 }}
               />
             </div>
             {passwordError && (
-              <span style={{ color: 'var(--danger-color)', fontSize: '0.8rem', marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <span style={{ color: 'var(--danger-color)', fontSize: '0.8rem', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', animation: 'fadeIn 0.2s ease' }}>
                 {passwordError}
               </span>
             )}
@@ -207,16 +330,44 @@ const Login = () => {
             disabled={loading}
             style={{ 
               width: '100%', 
-              marginTop: '1rem', 
-              padding: '0.85rem',
-              opacity: loading ? 0.7 : 1
+              marginTop: '0.5rem', 
+              padding: '1rem',
+              borderRadius: '12px',
+              fontSize: '1rem',
+              letterSpacing: '0.5px',
+              opacity: loading ? 0.7 : 1,
+              boxShadow: loading ? 'none' : '0 10px 25px -5px rgba(37, 99, 235, 0.3)'
             }}
           >
-            {loading ? 'Validando...' : (
-              <>Entrar <ArrowRight size={18} /></>
-            )}
+            <span style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {loading ? 'Validando...' : (
+                <>{isRegistering ? 'Criar Nova Conta' : 'Entrar'} <ArrowRight size={18} strokeWidth={2.5} /></>
+              )}
+            </span>
           </button>
         </form>
+
+        <div style={{ marginTop: '2rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+          {isRegistering ? 'Já possui uma conta?' : 'Ainda não tem conta no CellHub?'}
+          <button 
+            type="button" 
+            onClick={toggleMode}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              color: 'var(--primary-color)', 
+              fontWeight: '600', 
+              marginLeft: '0.5rem', 
+              cursor: 'pointer',
+              textDecoration: 'none',
+              transition: 'color 0.2s'
+            }}
+            onMouseOver={(e) => e.target.style.color = 'var(--primary-hover)'}
+            onMouseOut={(e) => e.target.style.color = 'var(--primary-color)'}
+          >
+            {isRegistering ? 'Faça login' : 'Cadastre-se grátis'}
+          </button>
+        </div>
 
       </div>
     </div>

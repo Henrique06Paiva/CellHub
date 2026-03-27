@@ -1,11 +1,15 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState, useEffect } from 'react';
 import { 
+  createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged 
-} from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../lib/firebase";
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  getAuth
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { initializeApp, getApp } from 'firebase/app';
+import { auth, db, firebaseConfig } from '../lib/firebase';
 
 const AuthContext = createContext();
 
@@ -20,6 +24,61 @@ export function AuthProvider({ children }) {
 
   async function login(email, password) {
     return signInWithEmailAndPassword(auth, email, password);
+  }
+
+  // Criação Inteligente: Instancia app paralelo para criar o auth sem deslogar admin
+  const registerUserFromAdmin = async (userData) => {
+    let secondaryApp;
+    try {
+      secondaryApp = getApp("Secondary");
+    } catch(e) {
+      secondaryApp = initializeApp(firebaseConfig, "Secondary");
+    }
+    const secondaryAuth = getAuth(secondaryApp);
+
+    try {
+      // Cria senha forte aleatória que o usuário nunca vai ver, porque vai redefinir
+      const tempPassword = Math.random().toString(36).slice(-8) + 'X8@!';
+      
+      const userCredential = await createUserWithEmailAndPassword(secondaryAuth, userData.email, tempPassword);
+      const newUserId = userCredential.user.uid;
+
+      // Salva dados no banco Principal
+      await setDoc(doc(db, 'users', newUserId), {
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone || '',
+        age: userData.age || '',
+        cep: userData.cep || '',
+        role: userData.role || 'membro',
+        cellId: userData.cellId || null,
+        cellName: userData.cellName || null,
+        networkId: userData.networkId || null,
+        status: 'ativo',
+        createdAt: serverTimestamp()
+      });
+
+      // Dispara email de Reset Password para o novo usuário configurar o 1o acesso
+      await sendPasswordResetEmail(auth, userData.email);
+      
+      // Encerra a sessão lixo no app paralelo
+      await signOut(secondaryAuth);
+      return newUserId;
+    } catch(error) {
+      console.error("Erro na criação secundária:", error);
+      throw error;
+    }
+  };
+
+  async function register(email, password, name) {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await setDoc(doc(db, "users", cred.user.uid), {
+      name: name || email.split('@')[0],
+      email: email,
+      role: 'member',
+      createdAt: new Date().toISOString()
+    });
+    return cred;
   }
 
   function logout() {
@@ -58,7 +117,10 @@ export function AuthProvider({ children }) {
   const value = {
     currentUser,
     userData, // { role: 'membro' | 'lider' | 'discipulador', cellId, networkId }
+    loading,
     login,
+    register,
+    registerUserFromAdmin,
     logout,
   };
 

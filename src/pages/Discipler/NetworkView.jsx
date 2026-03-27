@@ -1,18 +1,73 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { mockNetworks, mockCells, mockUsers } from '../../data/mockData';
+import { db } from '../../lib/firebase';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { Network, Activity, Home, Users } from 'lucide-react';
 
 const NetworkView = () => {
   const { currentUser, userData } = useAuth();
+  
+  const [myNetwork, setMyNetwork] = useState(null);
+  const [cells, setCells] = useState([]);
+  const [leaders, setLeaders] = useState({});
+  const [cellsMembersCount, setCellsMembersCount] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  const myNetwork = mockNetworks.find(n => n.disciplerId === currentUser?.uid || n.id === userData?.networkId);
-  const cells = mockCells.filter(c => c.networkId === myNetwork?.id);
-  const totalMembers = cells.reduce((acc, cell) => acc + mockUsers.filter(u => u.cellId === cell.id).length, 0);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        let networkData = null;
+        
+        if (userData?.networkId) {
+          const netDoc = await getDoc(doc(db, 'networks', userData.networkId));
+          if (netDoc.exists()) {
+            networkData = { id: netDoc.id, ...netDoc.data() };
+          }
+        } else {
+          const netQ = query(collection(db, 'networks'), where('disciplerId', '==', currentUser?.uid));
+          const netSnap = await getDocs(netQ);
+          if (!netSnap.empty) {
+            networkData = { id: netSnap.docs[0].id, ...netSnap.docs[0].data() };
+          }
+        }
 
-  if (!myNetwork) {
-    return <div>Você não possui nenhuma rede vinculada.</div>;
-  }
+        if (networkData) {
+          setMyNetwork(networkData);
+
+          const cellsQ = query(collection(db, 'cells'), where('networkId', '==', networkData.id));
+          const cellsSnap = await getDocs(cellsQ);
+          const loadedCells = cellsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          setCells(loadedCells);
+
+          const lMap = {};
+          const cMap = {};
+          let totalMems = 0;
+          
+          for (const cell of loadedCells) {
+            if (cell.leaderId) {
+              const lDoc = await getDoc(doc(db, 'users', cell.leaderId));
+              if (lDoc.exists()) lMap[cell.leaderId] = { id: lDoc.id, ...lDoc.data() };
+            }
+            const memQ = query(collection(db, 'users'), where('cellId', '==', cell.id));
+            const memSnap = await getDocs(memQ);
+            cMap[cell.id] = memSnap.size;
+          }
+          setLeaders(lMap);
+          setCellsMembersCount(cMap);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar rede:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [currentUser, userData]);
+
+  if (loading) return <div style={{ padding: '2rem' }}>Carregando dados da rede...</div>;
+  if (!myNetwork) return <div style={{ padding: '2rem' }}>Você não possui explícitamente nenhuma rede vinculada ou os dados não foram encontrados.</div>;
+
+  const totalMembers = Object.values(cellsMembersCount).reduce((acc, curr) => acc + curr, 0);
 
   return (
     <div>
@@ -49,8 +104,8 @@ const NetworkView = () => {
             <Activity size={28} />
           </div>
           <div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Média de Frequência</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: '800' }}>90%</div> {/* static for mock */}
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Células Sem Líder</div>
+            <div style={{ fontSize: '1.8rem', fontWeight: '800' }}>{cells.filter(c => !c.leaderId).length}</div>
           </div>
         </div>
       </div>
@@ -58,30 +113,33 @@ const NetworkView = () => {
       <div className="glass-panel" style={{ padding: '1.5rem' }}>
         <h2 style={{ marginBottom: '1.5rem' }}>Células da Rede</h2>
         
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Célula</th>
-              <th>Líder</th>
-              <th>Endereço</th>
-              <th>Membros</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cells.map(cell => {
-              const leader = mockUsers.find(u => u.id === cell.leaderId);
-              const cellMem = mockUsers.filter(u => u.cellId === cell.id);
-              return (
-                <tr key={cell.id}>
-                  <td style={{ fontWeight: '600', color: 'var(--primary-hover)' }}>{cell.name}</td>
-                  <td>{leader ? leader.name : <span style={{ color: 'var(--danger-color)', fontSize: '0.85rem' }}>Sem Líder</span>}</td>
-                  <td style={{ color: 'var(--text-muted)' }}>{cell.address}</td>
-                  <td>{cellMem.length}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        {cells.length > 0 ? (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Célula</th>
+                <th>Líder</th>
+                <th>Endereço</th>
+                <th>Membros</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cells.map(cell => {
+                const leader = leaders[cell.leaderId];
+                return (
+                  <tr key={cell.id}>
+                    <td style={{ fontWeight: '600', color: 'var(--primary-hover)' }}>{cell.name}</td>
+                    <td>{leader ? leader.name : <span style={{ color: 'var(--danger-color)', fontSize: '0.85rem' }}>Sem Líder</span>}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{cell.address}</td>
+                    <td>{cellsMembersCount[cell.id] || 0}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <p style={{ color: 'var(--text-muted)' }}>Nenhuma célula associada a esta rede encontrada.</p>
+        )}
       </div>
     </div>
   );

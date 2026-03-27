@@ -6,6 +6,7 @@ import DashboardLayout from './components/Layout/DashboardLayout';
 import CellView from './pages/Member/CellView';
 import CellManagement from './pages/Leader/CellManagement';
 import NetworkView from './pages/Discipler/NetworkView';
+import UserManagement from './pages/Users/UserManagement';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { currentUser, userData } = useAuth();
@@ -27,6 +28,7 @@ const DashboardRouter = () => {
   if (!currentUser) return <Navigate to="/login" replace />;
   if (!userData) return <div>Carregando usuário...</div>;
 
+  if (userData.role === 'root') return <Navigate to="/users" replace />;
   if (userData.role === 'discipulador') return <Navigate to="/network" replace />;
   if (userData.role === 'lider') return <Navigate to="/manage" replace />;
   return <Navigate to="/my-cell" replace />;
@@ -55,8 +57,14 @@ function App() {
             } />
             
             <Route path="/network" element={
-              <ProtectedRoute allowedRoles={['discipulador']}>
+              <ProtectedRoute allowedRoles={['discipulador', 'root']}>
                 <NetworkView />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/users" element={
+              <ProtectedRoute allowedRoles={['discipulador', 'root', 'lider', 'leader']}>
+                <UserManagement />
               </ProtectedRoute>
             } />
           </Route>
