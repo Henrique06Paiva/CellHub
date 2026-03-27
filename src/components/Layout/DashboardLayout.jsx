@@ -42,10 +42,8 @@ const DashboardLayout = () => {
         
         {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem', padding: '0 0.5rem' }}>
-          <div style={{ background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%)', padding: '0.5rem', borderRadius: '12px', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}>
-            <Component size={24} />
-          </div>
-          <span style={{ fontWeight: '800', fontSize: '1.5rem', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>CellHub</span>
+          <img src="/nexo-logo.png" alt="Nexo Logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
+          <span style={{ fontWeight: '800', fontSize: '1.5rem', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>Nexo</span>
         </div>
 
         {/* User Card */}

@@ -153,23 +153,8 @@ const Login = () => {
         backdropFilter: 'blur(24px)'
       }}>
         
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          marginBottom: '1.25rem', 
-          color: 'var(--primary-color)',
-          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.02) 100%)',
-          width: '84px',
-          height: '84px',
-          borderRadius: '50%',
-          alignItems: 'center',
-          margin: '0 auto 1.5rem auto',
-          boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 12px rgba(37, 99, 235, 0.1)'
-        }}>
-          <UserCircle2 size={44} strokeWidth={1.2} />
-        </div>
-        
-        <h1 style={{ fontSize: '2.25rem', marginBottom: '0.25rem', letterSpacing: '-0.02em' }}>CellHub</h1>
+        <img src="/nexo-logo.png" alt="Nexo Logo" style={{ height: '64px', width: 'auto', objectFit: 'contain', marginBottom: '1.5rem', display: 'block', margin: '0 auto' }} />
+        <h1 style={{ fontSize: '2.25rem', marginBottom: '0.25rem', letterSpacing: '-0.02em', textAlign: 'center' }}>Nexo</h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '2.5rem', fontSize: '0.95rem', fontWeight: '400' }}>
           {isRegistering ? 'Crie sua conta para acessar' : 'Acesse a plataforma de gerenciamento'}
         </p>
@@ -348,7 +333,7 @@ const Login = () => {
         </form>
 
         <div style={{ marginTop: '2rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-          {isRegistering ? 'Já possui uma conta?' : 'Ainda não tem conta no CellHub?'}
+          {isRegistering ? 'Já possui uma conta?' : 'Ainda não tem conta no Nexo?'}
           <button 
             type="button" 
             onClick={toggleMode}
