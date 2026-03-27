@@ -1,13 +1,13 @@
 import React from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { LogOut, LayoutDashboard, Component, Users as UsersIcon } from 'lucide-react';
 
 const DashboardLayout = () => {
-  const { user, logout } = useAuth();
+  const { currentUser, userData, logout } = useAuth();
   const location = useLocation();
 
-  if (!user) {
+  if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
 
@@ -31,11 +31,11 @@ const DashboardLayout = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'var(--surface-color)', borderRadius: '8px' }}>
             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-              {user.name.charAt(0)}
+              {(userData?.name || currentUser?.email || 'U').charAt(0).toUpperCase()}
             </div>
             <div>
-              <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{user.name}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{getRoleName(user.role)}</div>
+              <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{userData?.name || currentUser?.email}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{getRoleName(userData?.role)}</div>
             </div>
           </div>
         </div>

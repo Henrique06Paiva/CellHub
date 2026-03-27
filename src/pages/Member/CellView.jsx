@@ -1,15 +1,15 @@
 import React from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { mockCells, mockUsers, mockNetworks } from '../../data/mockData';
 import { MapPin, Users, Calendar } from 'lucide-react';
 
 const CellView = () => {
-  const { user } = useAuth();
+  const { currentUser, userData } = useAuth();
 
-  const myCell = mockCells.find(c => c.id === user.cellId);
+  const myCell = mockCells.find(c => c.id === userData?.cellId);
   const leader = mockUsers.find(u => u.id === myCell?.leaderId);
-  const myNetwork = mockNetworks.find(n => n.id === user.networkId);
-  const members = mockUsers.filter(u => u.cellId === user.cellId);
+  const myNetwork = mockNetworks.find(n => n.id === userData?.networkId);
+  const members = mockUsers.filter(u => u.cellId === userData?.cellId);
 
   if (!myCell) {
     return <div>Você não está vinculado a nenhuma célula.</div>;
@@ -65,7 +65,7 @@ const CellView = () => {
           <tbody>
             {members.map(m => (
               <tr key={m.id}>
-                <td style={{ fontWeight: '500' }}>{m.name} {m.id === user.id && '(Você)'}</td>
+                <td style={{ fontWeight: '500' }}>{m.name} {m.id === currentUser?.uid && '(Você)'}</td>
                 <td style={{ color: 'var(--text-muted)' }}>{m.email}</td>
                 <td>
                   <span style={{ 

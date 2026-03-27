@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { mockCells, mockUsers, mockAttendances } from '../../data/mockData';
 import { Users, ClipboardCheck, AlertCircle } from 'lucide-react';
 
 const CellManagement = () => {
-  const { user } = useAuth();
+  const { currentUser, userData } = useAuth();
   
-  const myCell = mockCells.find(c => c.id === user.cellId);
-  const members = mockUsers.filter(u => u.cellId === user.cellId);
-  const attendances = mockAttendances.filter(a => a.cellId === user.cellId);
+  const myCell = mockCells.find(c => c.id === userData?.cellId);
+  const members = mockUsers.filter(u => u.cellId === userData?.cellId);
+  const attendances = mockAttendances.filter(a => a.cellId === userData?.cellId);
 
   const [date, setDate] = useState('');
   const [notes, setNotes] = useState('');

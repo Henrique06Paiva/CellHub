@@ -1,12 +1,12 @@
 import React from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { mockNetworks, mockCells, mockUsers } from '../../data/mockData';
 import { Network, Activity, Home, Users } from 'lucide-react';
 
 const NetworkView = () => {
-  const { user } = useAuth();
+  const { currentUser, userData } = useAuth();
 
-  const myNetwork = mockNetworks.find(n => n.disciplerId === user.id || n.id === user.networkId);
+  const myNetwork = mockNetworks.find(n => n.disciplerId === currentUser?.uid || n.id === userData?.networkId);
   const cells = mockCells.filter(c => c.networkId === myNetwork?.id);
   const totalMembers = cells.reduce((acc, cell) => acc + mockUsers.filter(u => u.cellId === cell.id).length, 0);
 
