@@ -9,6 +9,9 @@ import NetworkView from './pages/Discipler/NetworkView';
 import UserManagement from './pages/Users/UserManagement';
 import UserForm from './pages/Users/UserForm';
 import UserDetails from './pages/Users/UserDetails';
+import ReportsList from './pages/Reports/ReportsList';
+import ReportForm from './pages/Reports/ReportForm';
+import ReportDetails from './pages/Reports/ReportDetails';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { currentUser, userData } = useAuth();
@@ -85,6 +88,22 @@ function App() {
             <Route path="/users/:id" element={
               <ProtectedRoute allowedRoles={['discipulador', 'root', 'lider', 'leader']}>
                 <UserDetails />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/reports" element={
+              <ProtectedRoute allowedRoles={['lider', 'leader', 'discipulador', 'root']}>
+                <ReportsList />
+              </ProtectedRoute>
+            } />
+            <Route path="/reports/new" element={
+              <ProtectedRoute allowedRoles={['lider', 'leader']}>
+                <ReportForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/reports/:id" element={
+              <ProtectedRoute allowedRoles={['lider', 'leader', 'discipulador', 'root']}>
+                <ReportDetails />
               </ProtectedRoute>
             } />
           </Route>
