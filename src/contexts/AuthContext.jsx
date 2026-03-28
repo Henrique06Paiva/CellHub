@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { 
-  createUserWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
@@ -70,16 +70,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  async function register(email, password, name) {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await setDoc(doc(db, "users", cred.user.uid), {
-      name: name || email.split('@')[0],
-      email: email,
-      role: 'member',
-      createdAt: new Date().toISOString()
-    });
-    return cred;
-  }
+
 
   function logout() {
     return signOut(auth);
@@ -119,7 +110,6 @@ export function AuthProvider({ children }) {
     userData, // { role: 'membro' | 'lider' | 'discipulador', cellId, networkId }
     loading,
     login,
-    register,
     registerUserFromAdmin,
     logout,
   };
