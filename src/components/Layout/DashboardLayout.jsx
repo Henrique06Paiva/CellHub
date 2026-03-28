@@ -1,11 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Navigate, NavLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogOut, Component, UserCircle2, Home, ShieldCheck, Network, Users as UsersIcon } from 'lucide-react';
+import { LogOut, UserCircle2, Home, ShieldCheck, Network, Users as UsersIcon, PanelLeftClose, Menu, ChevronDown, FileText, Calendar, User } from 'lucide-react';
 import { SeedDevTool } from '../SeedDevTool';
 
 const DashboardLayout = () => {
   const { currentUser, userData, logout } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (!currentUser) {
     return <Navigate to="/login" replace />;
@@ -24,111 +37,188 @@ const DashboardLayout = () => {
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', background: 'var(--bg-color)', overflow: 'hidden', display: 'flex' }}>
-      {/* Background Orbs baseados na tela de Login para Premium Feel */}
-      <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '40vw', height: '40vw', background: 'rgba(37, 99, 235, 0.06)', borderRadius: '50%', filter: 'blur(80px)', zIndex: 0 }} />
-      <div style={{ position: 'absolute', bottom: '-15%', right: '-5%', width: '50vw', height: '50vw', background: 'rgba(16, 185, 129, 0.04)', borderRadius: '50%', filter: 'blur(100px)', zIndex: 0 }} />
-
-      {/* Floating Glass Sidebar */}
-      <nav className="glass-panel" style={{
-        width: '280px',
-        margin: '1.5rem 0 1.5rem 1.5rem',
-        borderRadius: '24px',
+      
+      {/* Sidebar 100% height */}
+      <nav style={{
+        width: isSidebarOpen ? '260px' : '80px',
+        height: '100%',
+        background: 'white',
+        borderRight: 'none',
         display: 'flex',
         flexDirection: 'column',
-        zIndex: 10,
-        padding: '1.5rem',
-        boxShadow: '0 10px 40px rgba(37, 99, 235, 0.05)'
+        zIndex: 20,
+        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: '4px 0 24px rgba(0,0,0,0.02)',
+        flexShrink: 0
       }}>
-        
-        {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem', padding: '0 0.5rem' }}>
-          <img src="/nexo-logo.jpeg" alt="Nexo Logo" style={{ height: '32px', width: 'auto', objectFit: 'contain', borderRadius: '6px' }} />
-          <span style={{ fontWeight: '800', fontSize: '1.5rem', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>Nexo</span>
-        </div>
-
-        {/* User Card */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.85rem', background: 'rgba(255,255,255,0.7)', borderRadius: '16px', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.9)', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.8)' }}>
-          <div style={{ color: 'var(--primary-color)' }}>
-            <UserCircle2 size={38} strokeWidth={1.2} />
-          </div>
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-main)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-              {userData?.name || currentUser?.email?.split('@')[0]}
+        {/* Brand Header */}
+        <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: isSidebarOpen ? 'space-between' : 'center', padding: isSidebarOpen ? '0 1.5rem' : '0', borderBottom: 'none', flexShrink: 0 }}>
+          {isSidebarOpen ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
+              <span style={{ 
+                fontWeight: '900', 
+                fontSize: '1.75rem', 
+                background: 'linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%)', 
+                WebkitBackgroundClip: 'text', 
+                WebkitTextFillColor: 'transparent', 
+                letterSpacing: '-0.04em', 
+                whiteSpace: 'nowrap',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
+              }}>
+                Nexo-Hub
+              </span>
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {getRoleName(userData?.role)}
-            </div>
-          </div>
-        </div>
-
-        {/* Dynamic Navigation Modules */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto', paddingRight: '0.5rem' }}>
+          ) : (
+            <span style={{ 
+              fontWeight: '900', 
+              fontSize: '1.5rem', 
+              background: 'linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%)', 
+              WebkitBackgroundClip: 'text', 
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '-0.04em'
+            }}>
+              N
+            </span>
+          )}
           
-          {/* Module: Pessoal */}
-          {(['membro', 'member', 'lider', 'leader'].includes(userData?.role?.toLowerCase())) && (
-            <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
-                Pessoal
-              </div>
-              <NavLink to="/my-cell" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} title="Informações e membros da sua célula atual">
-                <Home size={18} /> Minha Célula
-              </NavLink>
-            </div>
-          )}
-
-          {/* Module: Liderança */}
-          {['lider', 'leader'].includes(userData?.role?.toLowerCase()) && (
-            <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem', paddingLeft: '0.5rem', marginTop: '0.5rem' }}>
-                Liderança
-              </div>
-              <NavLink to="/manage" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} title="Administre relatórios e presença dos seus membros">
-                <ShieldCheck size={18} /> Gestão da Célula
-              </NavLink>
-            </div>
-          )}
-
-          {/* Module: Supervisão */}
-          {('discipulador' === userData?.role?.toLowerCase() || 'root' === userData?.role?.toLowerCase()) && (
-            <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
-                Supervisão Global
-              </div>
-              <NavLink to="/network" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} title="Visão hierárquica e saúde das células">
-                <Network size={18} /> Visão da Rede
-              </NavLink>
-            </div>
-          )}
-
-          {/* Module: Administrativo */}
-          {['root', 'discipulador', 'lider', 'leader'].includes(userData?.role?.toLowerCase()) && (
-            <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem', paddingLeft: '0.5rem', marginTop: '0.5rem' }}>
-                Administrativo
-              </div>
-              <NavLink to="/users" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} title="Gestão de Usuários e Acessos">
-                <UsersIcon size={18} /> Gestão de Usuários
-              </NavLink>
-            </div>
-          )}
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: isSidebarOpen ? 'flex' : 'none', padding: '0.5rem', borderRadius: '6px' }} onMouseOver={e=>e.currentTarget.style.background='var(--surface-hover)'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+             <PanelLeftClose size={20} />
+          </button>
         </div>
 
-        <button 
-          onClick={logout}
-          className="nav-logout"
-          style={{ marginTop: '1rem' }}
-        >
-          <LogOut size={18} />
-          <span>Sair da conta</span>
-        </button>
+        {/* Modules Navigation */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto', overflowX: 'hidden', padding: '1.5rem 1rem' }}>
+          
+           <div style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem', paddingLeft: isSidebarOpen ? '0.5rem' : '0', textAlign: isSidebarOpen ? 'left' : 'center', opacity: isSidebarOpen ? 1 : 0.6 }}>
+             {isSidebarOpen ? 'Painel Geral' : '•••'}
+           </div>
+
+           {(['membro', 'lider', 'leader'].includes(userData?.role?.toLowerCase())) && (
+             <NavLink to="/my-cell" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Minha Célula">
+               <Home size={20} style={{ flexShrink: 0 }} />
+               {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Minha Célula</span>}
+             </NavLink>
+           )}
+
+           {(['lider', 'leader', 'discipulador', 'root'].includes(userData?.role?.toLowerCase())) && (
+             <div style={{ marginTop: '0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+
+               {/* Gestão de Células */}
+               <NavLink to="/manage" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Células">
+                 <ShieldCheck size={20} style={{ flexShrink: 0 }} />
+                 {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Células</span>}
+               </NavLink>
+
+               {/* Supervisão Global */}
+               {('discipulador' === userData?.role?.toLowerCase() || 'root' === userData?.role?.toLowerCase()) && (
+                 <NavLink to="/network" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Visão da Rede">
+                   <Network size={20} style={{ flexShrink: 0 }} />
+                   {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Visão da Rede</span>}
+                 </NavLink>
+               )}
+
+               {/* Gestão de Usuários */}
+               {['root', 'discipulador', 'lider', 'leader'].includes(userData?.role?.toLowerCase()) && (
+                 <NavLink to="/users" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Usuários">
+                   <UsersIcon size={20} style={{ flexShrink: 0 }} />
+                   {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Usuários</span>}
+                 </NavLink>
+               )}
+               
+               {/* Future modules */}
+               <button className="nav-item" disabled style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0', opacity: 0.5, cursor: 'not-allowed', background: 'transparent', border: 'none', color: 'var(--text-muted)', width: '100%' }} title="Gestão de Relatórios (Em breve)">
+                 <FileText size={20} style={{ flexShrink: 0 }} />
+                 {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Relatórios</span>}
+               </button>
+               <button className="nav-item" disabled style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0', opacity: 0.5, cursor: 'not-allowed', background: 'transparent', border: 'none', color: 'var(--text-muted)', width: '100%' }} title="Gestão de Eventos (Em breve)">
+                 <Calendar size={20} style={{ flexShrink: 0 }} />
+                 {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Eventos</span>}
+               </button>
+             </div>
+           )}
+        </div>
       </nav>
 
       {/* Main Content Area */}
-      <main style={{ flex: 1, height: '100%', overflowY: 'auto', padding: '2.5rem', zIndex: 1, position: 'relative' }}>
-        <div className="animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
-          <Outlet />
-        </div>
-      </main>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', position: 'relative', zIndex: 10 }}>
+        
+        {/* Background Orbs in Main Content to keep the premium feel */}
+        <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: '40vw', height: '40vw', background: 'rgba(37, 99, 235, 0.05)', borderRadius: '50%', filter: 'blur(80px)', zIndex: 0, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-20%', left: '-10%', width: '40vw', height: '40vw', background: 'rgba(16, 185, 129, 0.03)', borderRadius: '50%', filter: 'blur(100px)', zIndex: 0, pointerEvents: 'none' }} />
+
+        {/* Top Header */}
+        <header style={{ height: '70px', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-color)', boxShadow: '0 4px 24px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', zIndex: 20, flexShrink: 0 }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {!isSidebarOpen && (
+              <button 
+                onClick={() => setIsSidebarOpen(true)} 
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-main)', display: 'flex', padding: '0.5rem', borderRadius: '6px', transition: 'background 0.2s' }} 
+                onMouseOver={e => e.currentTarget.style.background='var(--surface-hover)'} 
+                onMouseOut={e => e.currentTarget.style.background='transparent'}
+                title="Expandir Menu"
+              >
+                <Menu size={20} />
+              </button>
+            )}
+          </div>
+
+          {/* User Profile Dropdown */}
+          <div style={{ position: 'relative' }} ref={profileRef}>
+            <button 
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: isProfileOpen ? 'white' : 'transparent', border: '1px solid', borderColor: isProfileOpen ? 'var(--border-color)' : 'transparent', padding: '0.25rem 0.5rem 0.25rem 0.25rem', borderRadius: '40px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: isProfileOpen ? '0 4px 12px rgba(0,0,0,0.05)' : 'none' }}
+              onMouseOver={e => { if(!isProfileOpen){ e.currentTarget.style.background = 'rgba(255,255,255,0.5)'; } }}
+              onMouseOut={e => { if(!isProfileOpen){ e.currentTarget.style.background = 'transparent'; } }}
+            >
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--surface-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
+                <UserCircle2 size={24} />
+              </div>
+              <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', paddingRight: '0.5rem' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--text-main)', lineHeight: '1.2' }}>{userData?.name || currentUser?.email?.split('@')[0]}</span>
+                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{getRoleName(userData?.role)}</span>
+              </div>
+              <ChevronDown size={14} style={{ color: 'var(--text-muted)', transition: 'transform 0.2s', transform: isProfileOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {isProfileOpen && (
+              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', background: 'white', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', width: '220px', overflow: 'hidden', padding: '0.5rem', zIndex: 100 }}>
+                <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Conectado como</div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser?.email}</div>
+                </div>
+                
+                <button 
+                  onClick={() => { setIsProfileOpen(false); /* navigate('/profile') future */ }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: 'none', border: 'none', color: 'var(--text-main)', fontSize: '0.875rem', cursor: 'pointer', textAlign: 'left', fontWeight: '500', borderRadius: '6px', transition: 'background 0.2s' }}
+                  onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.03)'}
+                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <User size={16} /> Meu Perfil
+                </button>
+                
+                <button 
+                  onClick={logout}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: 'none', border: 'none', color: '#ef4444', fontSize: '0.875rem', cursor: 'pointer', textAlign: 'left', fontWeight: '500', borderRadius: '6px', transition: 'background 0.2s' }}
+                  onMouseOver={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)'}
+                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <LogOut size={16} /> Sair da conta
+                </button>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Scrollable Page Content */}
+        <main style={{ flex: 1, overflowY: 'auto', padding: '2.5rem', position: 'relative', zIndex: 10 }}>
+          <div className="animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+            <Outlet />
+          </div>
+        </main>
+
+      </div>
       
       {/* Dev Tool: Injetor de Mocks Firebase */}
       <SeedDevTool />

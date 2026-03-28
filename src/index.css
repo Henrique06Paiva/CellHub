@@ -1,13 +1,15 @@
 :root {
-  --primary-color: #2563eb;
-  --primary-hover: #1d4ed8;
-  --bg-color: #f8fafc;
-  --surface-color: #ffffff;
-  --surface-hover: #f1f5f9;
-  --border-color: #e2e8f0;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --danger-color: #ef4444;
+  --primary-color: #4f46e5;      /* Indigo 600 - Roxo/Azul Rico */
+  --primary-hover: #4338ca;      /* Indigo 700 */
+  --primary-light: #818cf8;      /* Indigo 400 */
+  --secondary-color: #06b6d4;    /* Cyan 500 - Destalhes e Gradientes */
+  --bg-color: #0f172a;           /* Dark Slate 900 - Fundo Geral Escuro */
+  --surface-color: #1e293b;      /* Slate 800 - Fundo de Cards/Inputs */
+  --surface-hover: #334155;      /* Slate 700 */
+  --border-color: rgba(255, 255, 255, 0.08); /* Bordas translucidas claras */
+  --text-main: #f8fafc;          /* Slate 50 - Texto Principal Branco */
+  --text-muted: #94a3b8;         /* Slate 400 - Texto Secundario Cinza Claro */
+  --danger-color: #ef4444;       
   --success-color: #10b981;
 }
 
@@ -87,12 +89,12 @@ input:focus, select:focus, textarea:focus {
 
 /* Glassmorphism Classes */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(15, 23, 42, 0.65); /* Darker translucent */
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle white border */
   border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(37, 99, 235, 0.08);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
 }
 
 /* Typography */
@@ -100,7 +102,7 @@ h1 {
   font-size: 2.25rem;
   font-weight: 800;
   margin-bottom: 1rem;
-  background: linear-gradient(to right, #0f172a, #2563eb);
+  background: linear-gradient(to right, #f8fafc, var(--primary-color));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -136,10 +138,22 @@ h3 {
   color: var(--primary-color);
 }
 
-.nav-item.active {
-  background: rgba(37, 99, 235, 0.1);
+.nav-item.solid-active {
+  background-color: rgba(79, 70, 229, 0.08); /* Fundo sutil indigo */
   color: var(--primary-color);
-  box-shadow: inset 4px 0 0 var(--primary-color);
+  font-weight: 700;
+  position: relative;
+}
+
+.nav-item.solid-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 4px;
+  background-color: var(--primary-color);
+  border-radius: 0 4px 4px 0;
 }
 
 .nav-logout {
@@ -162,20 +176,20 @@ h3 {
 
 /* Card classes */
 .card {
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(30, 41, 59, 0.65); /* Slate 800 translucent */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 16px;
   padding: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
 }
 
 .card:not(.static):hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.08);
-  border-color: rgba(255, 255, 255, 1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* Table */

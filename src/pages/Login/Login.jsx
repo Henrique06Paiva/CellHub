@@ -132,10 +132,10 @@ const Login = () => {
     }}>
       {/* Background Orbs */}
       <div style={{
-        position: 'absolute', top: '-10%', left: '-5%', width: '40vw', height: '40vw', background: 'rgba(37, 99, 235, 0.08)', borderRadius: '50%', filter: 'blur(80px)', zIndex: 0
+        position: 'absolute', top: '-10%', left: '-5%', width: '40vw', height: '40vw', background: 'rgba(79, 70, 229, 0.08)', borderRadius: '50%', filter: 'blur(80px)', zIndex: 0
       }} />
       <div style={{
-        position: 'absolute', bottom: '-15%', right: '-5%', width: '50vw', height: '50vw', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '50%', filter: 'blur(100px)', zIndex: 0
+        position: 'absolute', bottom: '-15%', right: '-5%', width: '50vw', height: '50vw', background: 'rgba(6, 182, 212, 0.05)', borderRadius: '50%', filter: 'blur(100px)', zIndex: 0
       }} />
 
       <div className="glass-panel animate-fade-in" style={{ 
@@ -145,16 +145,27 @@ const Login = () => {
         maxWidth: '440px', 
         width: '100%', 
         textAlign: 'center',
-        background: 'rgba(255, 255, 255, 0.65)',
-        boxShadow: '0 25px 50px -12px rgba(37, 99, 235, 0.15)',
-        border: '1px solid rgba(255, 255, 255, 0.8)',
+        background: 'rgba(15, 23, 42, 0.65)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
         borderRadius: '24px',
         WebkitBackdropFilter: 'blur(24px)',
         backdropFilter: 'blur(24px)'
       }}>
         
-        <img src="/nexo-logo.jpeg" alt="Nexo Logo" style={{ height: '64px', width: 'auto', objectFit: 'contain', marginBottom: '1.5rem', display: 'block', margin: '0 auto', borderRadius: '12px' }} />
-        <h1 style={{ fontSize: '2.25rem', marginBottom: '0.25rem', letterSpacing: '-0.02em', textAlign: 'center' }}>Nexo</h1>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+          <span style={{ 
+            fontWeight: '900', 
+            fontSize: '3rem', 
+            background: 'linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%)', 
+            WebkitBackgroundClip: 'text', 
+            WebkitTextFillColor: 'transparent', 
+            letterSpacing: '-0.04em',
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+          }}>
+            Nexo-Hub
+          </span>
+        </div>
         <p style={{ color: 'var(--text-muted)', marginBottom: '2.5rem', fontSize: '0.95rem', fontWeight: '400' }}>
           {isRegistering ? 'Crie sua conta para acessar' : 'Acesse a plataforma de gerenciamento'}
         </p>
@@ -163,15 +174,15 @@ const Login = () => {
           <div style={{ 
             marginBottom: '1.5rem', 
             padding: '0.85rem', 
-            background: 'rgba(254, 242, 242, 0.8)', 
-            color: 'var(--danger-color)', 
+            background: 'rgba(239, 68, 68, 0.15)', 
+            color: '#fca5a5', 
             borderRadius: '12px', 
             display: 'flex', 
             alignItems: 'center', 
             gap: '0.5rem', 
             justifyContent: 'center',
             fontSize: '0.9rem',
-            border: '1px solid rgba(254, 202, 202, 0.5)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
             backdropFilter: 'blur(8px)',
             animation: 'fadeIn 0.3s ease'
           }}>
@@ -201,9 +212,10 @@ const Login = () => {
                   style={{ 
                     width: '100%', 
                     padding: '0.9rem 1rem 0.9rem 3rem',
-                    background: 'rgba(248, 250, 252, 0.8)',
-                    borderColor: nameError ? 'var(--danger-color)' : 'rgba(226, 232, 240, 0.8)',
+                    background: 'rgba(30, 41, 59, 0.6)',
+                    borderColor: nameError ? 'var(--danger-color)' : 'rgba(255, 255, 255, 0.1)',
                     boxShadow: nameError ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : 'none',
+                    color: 'var(--text-main)',
                     borderRadius: '12px',
                     fontSize: '0.95rem'
                   }}
@@ -236,9 +248,10 @@ const Login = () => {
                 style={{ 
                   width: '100%', 
                   padding: '0.9rem 1rem 0.9rem 3rem',
-                  background: 'rgba(248, 250, 252, 0.8)',
-                  borderColor: emailError ? 'var(--danger-color)' : 'rgba(226, 232, 240, 0.8)',
+                  background: 'rgba(30, 41, 59, 0.6)',
+                  borderColor: emailError ? 'var(--danger-color)' : 'rgba(255, 255, 255, 0.1)',
                   boxShadow: emailError ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : 'none',
+                  color: 'var(--text-main)',
                   borderRadius: '12px',
                   fontSize: '0.95rem'
                 }}
@@ -294,9 +307,10 @@ const Login = () => {
                 style={{ 
                   width: '100%', 
                   padding: '0.9rem 1rem 0.9rem 3rem',
-                  background: 'rgba(248, 250, 252, 0.8)',
-                  borderColor: passwordError ? 'var(--danger-color)' : 'rgba(226, 232, 240, 0.8)',
+                  background: 'rgba(30, 41, 59, 0.6)',
+                  borderColor: passwordError ? 'var(--danger-color)' : 'rgba(255, 255, 255, 0.1)',
                   boxShadow: passwordError ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : 'none',
+                  color: 'var(--text-main)',
                   borderRadius: '12px',
                   fontSize: '0.95rem'
                 }}
@@ -321,7 +335,7 @@ const Login = () => {
               fontSize: '1rem',
               letterSpacing: '0.5px',
               opacity: loading ? 0.7 : 1,
-              boxShadow: loading ? 'none' : '0 10px 25px -5px rgba(37, 99, 235, 0.3)'
+              boxShadow: loading ? 'none' : '0 10px 25px -5px rgba(79, 70, 229, 0.3)'
             }}
           >
             <span style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -333,7 +347,7 @@ const Login = () => {
         </form>
 
         <div style={{ marginTop: '2rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-          {isRegistering ? 'Já possui uma conta?' : 'Ainda não tem conta no Nexo?'}
+          {isRegistering ? 'Já possui uma conta?' : 'Ainda não tem conta no Nexo-Hub?'}
           <button 
             type="button" 
             onClick={toggleMode}

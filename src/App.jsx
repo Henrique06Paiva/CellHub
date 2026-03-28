@@ -7,6 +7,8 @@ import CellView from './pages/Member/CellView';
 import CellManagement from './pages/Leader/CellManagement';
 import NetworkView from './pages/Discipler/NetworkView';
 import UserManagement from './pages/Users/UserManagement';
+import UserForm from './pages/Users/UserForm';
+import UserDetails from './pages/Users/UserDetails';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { currentUser, userData } = useAuth();
@@ -65,6 +67,24 @@ function App() {
             <Route path="/users" element={
               <ProtectedRoute allowedRoles={['discipulador', 'root', 'lider', 'leader']}>
                 <UserManagement />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/users/new" element={
+              <ProtectedRoute allowedRoles={['discipulador', 'root', 'lider', 'leader']}>
+                <UserForm />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/users/:id/edit" element={
+              <ProtectedRoute allowedRoles={['discipulador', 'root', 'lider', 'leader']}>
+                <UserForm />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/users/:id" element={
+              <ProtectedRoute allowedRoles={['discipulador', 'root', 'lider', 'leader']}>
+                <UserDetails />
               </ProtectedRoute>
             } />
           </Route>
