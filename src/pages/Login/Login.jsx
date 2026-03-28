@@ -153,7 +153,7 @@ const Login = () => {
         backdropFilter: 'blur(24px)'
       }}>
         
-        <img src="/nexo-logo.png" alt="Nexo Logo" style={{ height: '64px', width: 'auto', objectFit: 'contain', marginBottom: '1.5rem', display: 'block', margin: '0 auto' }} />
+        <img src="/nexo-logo.jpeg" alt="Nexo Logo" style={{ height: '64px', width: 'auto', objectFit: 'contain', marginBottom: '1.5rem', display: 'block', margin: '0 auto', borderRadius: '12px' }} />
         <h1 style={{ fontSize: '2.25rem', marginBottom: '0.25rem', letterSpacing: '-0.02em', textAlign: 'center' }}>Nexo</h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '2.5rem', fontSize: '0.95rem', fontWeight: '400' }}>
           {isRegistering ? 'Crie sua conta para acessar' : 'Acesse a plataforma de gerenciamento'}

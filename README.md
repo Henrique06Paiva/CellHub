@@ -1,14 +1,18 @@
-# 📱 CellHub (Sistema de Gestão de Células)
+# 📱 Nexo (Sistema de Gestão de Células)
 
-Sistema moderno e minimalista para gestão e acompanhamento de Células e Redes, desenvolvido com **React** e **Firebase**. O sistema implementa um Controle de Acesso Baseado em Papéis (RBAC - Role-Based Access Control) focado na hierarquia e jornada evolutiva da liderança comunitária.
+Sistema moderno e minimalista para gestão e acompanhamento de Redes, focado na jornada evolutiva da liderança e supervisão comunitária. Desenvolvido com **React** e **Firebase**.
+
+> 📚 **Veja as Regras de Negócio completas e a Arquitetura de Papéis no arquivo [`REGRAS_DE_NEGOCIO_NEXO.md`](./REGRAS_DE_NEGOCIO_NEXO.md)**.
 
 ## ✨ Funcionalidades Atuais
-- **Autenticação Segura:** Login via E-mail e Senha moderno integrado ao Firebase Authentication.
-- **RBAC (Role-Based Access Control):** Regras avançadas criadas direto no Firestore (`firestore.rules`).
+- **Autenticação Segura:** Login via E-mail e Senha integrado ao Firebase Authentication (Fluxo de contas seguras com Secondary Apps).
+- **Gestão Global de Contas:** Módulo com formulário Premium de duas colunas, segmentação por blocos e validação em tempo real. Discipuladores registram novos Líderes e Membros de acordo com as permissões exatas da Firebase Store.
+- **RBAC Integrado na Interface:** 
   - **👨‍💼 Membro:** Visualiza dados apenas da sua própria célula.
-  - **👑 Líder:** Visualiza a própria célula, gerencia membros e envia relatórios de presença.
-  - **👁️ Discipulador:** Visualiza e acompanha os relatórios de todas as células da sua Rede.
-- **UI Moderna:** Interface no padrão _Glassmorphism_ e minimalista utilizando paleta de cores Branco e Azul.
+  - **👑 Líder:** Administra localmente a sua célula, com permissão limitada.
+  - **👁️ Discipulador:** Monitora a totalização da sua Rede através do dashboard global.
+  - **💻 Root:** Mestre absoluto para estruturar novas redes e Discipuladores.
+- **UI Moderna:** Interface fluída baseada em _Glassmorphism_, animações ágeis, modals limpos em UI/UX focado em Enterprise SaaS.
 
 ## 🚀 Tecnologias Utilizadas
 - [React](https://reactjs.org/) + [Vite](https://vitejs.dev/)
@@ -43,7 +47,9 @@ firebase deploy --only firestore:rules
 ```
 
 ## 📝 Próximos Passos (Backlog)
-- [ ] Criação dos layouts internos de Dashboard.
-- [ ] Rotas com diferenciação visual entre Líder, Discipulador e Membro.
-- [ ] Formulário de preenchimento de relatório de células.
-- [ ] Recuperação de senhas.
+- [x] Criação do Layout Premium estilo Glassmorphism (Dashboard).
+- [x] Rotas e Módulos com diferenciação visual entre Supervisão, Liderança e Membro.
+- [x] Módulo Avançado de Gestão de Contas (Painel Administrativo da Nuvem).
+- [ ] Módulo Administrativo: Organogramas, Células e Redes.
+- [ ] Formulário Interativo de Relatório de Cultos/Células Mensais ou Semanais.
+- [ ] Página Esqueci Minha Senha vinculada ao Firebase Auth.

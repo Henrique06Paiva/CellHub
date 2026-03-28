@@ -42,7 +42,7 @@ const DashboardLayout = () => {
         
         {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem', padding: '0 0.5rem' }}>
-          <img src="/nexo-logo.png" alt="Nexo Logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
+          <img src="/nexo-logo.jpeg" alt="Nexo Logo" style={{ height: '32px', width: 'auto', objectFit: 'contain', borderRadius: '6px' }} />
           <span style={{ fontWeight: '800', fontSize: '1.5rem', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>Nexo</span>
         </div>
 
