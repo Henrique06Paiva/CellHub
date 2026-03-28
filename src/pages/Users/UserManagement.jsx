@@ -11,32 +11,21 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Todos');
   const [selectedUser, setSelectedUser] = useState(null);
   const [userToEdit, setUserToEdit] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 10;
 
-  const handleDeleteUser = async (user) => {
-    if (window.confirm(`Tem certeza que deseja EXCLUIR permanentemente o usuário ${user.name}? Esta ação não pode ser desfeita e removerá o acesso dele.`)) {
-      try {
-        await deleteDoc(doc(db, 'users', user.id));
-      } catch (err) {
-        console.error("Erro ao excluir", err);
-        alert("Erro ao excluir usuário. Verifique suas permissões.");
-      }
-    }
-  };
-
-  const handleToggleStatus = async (user) => {
-    const newStatus = user.status === 'inativo' ? 'ativo' : 'inativo';
-    const acaoText = user.status === 'inativo' ? 'ativar' : 'desativar';
-    if (window.confirm(`Tem certeza que deseja ${acaoText} a conta de ${user.name}?`)) {
-      try {
-        await updateDoc(doc(db, 'users', user.id), { status: newStatus });
-      } catch (err) {
-        console.error("Erro ao alterar status", err);
-        alert("Erro ao alterar status do usuário.");
-      }
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      await deleteDoc(doc(db, 'users', userToDelete.id));
+      setUserToDelete(null);
+    } catch (err) {
+      console.error("Erro ao excluir", err);
+      alert("Erro ao excluir usuário. Verifique suas permissões.");
     }
   };
 
@@ -55,10 +44,19 @@ const UserManagement = () => {
     return () => unsubscribe();
   }, []);
 
-  const filteredUsers = users.filter(user => 
-    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesSearch) return false;
+    
+    // Status normalization: undefined/null usually means active in our legacy data
+    const currentStatus = user.status || 'ativo';
+    
+    if (statusFilter === 'Ativo') return currentStatus === 'ativo';
+    if (statusFilter === 'Inativo') return currentStatus === 'inativo';
+    if (statusFilter === 'Bloqueado') return currentStatus === 'bloqueado';
+    return true; // Todos
+  });
 
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
@@ -69,31 +67,65 @@ const UserManagement = () => {
     <div style={{ height: 'calc(100vh - 5rem)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexShrink: 0 }}>
         <div>
-          <h1>Gestão de Usuários</h1>
-          <p style={{ color: 'var(--text-muted)' }}>Gerencie as contas do sistema hierarquicamente.</p>
+          <h1 style={{ margin: 0 }}>Gestão de Usuários</h1>
         </div>
-        
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
-          <span>Novo Usuário</span>
-        </button>
       </div>
 
-      <div className="card static" style={{ padding: '0', overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '1rem', alignItems: 'center', flexShrink: 0 }}>
-          <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+      <div className="card static" style={{ padding: '0', overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', background: 'white' }}>
+        
+        {/* Top Toolbox Area */}
+        <div style={{ padding: '1rem 1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
+          
+          {/* Search Box */}
+          <div style={{ position: 'relative', width: '260px', borderRadius: '6px', background: 'var(--surface-color)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input 
               type="text" 
-              placeholder="Buscar por nome ou e-mail..." 
-              style={{ width: '100%', paddingLeft: '2.5rem', background: 'rgba(255,255,255,0.7)' }}
+              placeholder="Pesquisar usuário" 
+              style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.2rem', background: 'transparent', border: 'none', fontSize: '0.875rem', color: 'var(--text-main)', outline: 'none' }}
               value={searchTerm}
-              onChange={(e) => { 
-                setSearchTerm(e.target.value); 
-                setCurrentPage(1); 
-              }}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
             />
           </div>
+
+          <div style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.25rem' }} />
+
+          {/* Status Pills */}
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {['Todos', 'Ativo', 'Inativo', 'Bloqueado'].map(status => (
+              <button
+                key={status}
+                onClick={() => { setStatusFilter(status); setCurrentPage(1); }}
+                style={{
+                  padding: '0.4rem 0.85rem',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s, color 0.2s',
+                  background: statusFilter === status ? 'rgba(37, 99, 235, 0.15)' : 'rgba(0,0,0,0.03)',
+                  color: statusFilter === status ? 'var(--primary-color)' : 'var(--text-muted)'
+                }}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+
+          {/* Spacer */}
+          <div style={{ flex: 1 }}></div>
+
+          {/* Action Button */}
+          <button onClick={() => setIsModalOpen(true)} style={{ background: 'var(--primary-color)', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: '500', fontSize: '0.875rem', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--primary-hover)'} onMouseOut={e => e.currentTarget.style.background = 'var(--primary-color)'}>
+            <Plus size={18} />
+            Novo
+          </button>
+        </div>
+
+        {/* Table Title Block */}
+        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)' }}>
+          <h2 style={{ fontSize: '1.125rem', color: 'var(--primary-color)', fontWeight: '700', margin: 0 }}>Lista de Usuários</h2>
         </div>
 
         {loading ? (
@@ -101,63 +133,47 @@ const UserManagement = () => {
         ) : (
           <>
             <div style={{ overflow: 'auto', flex: 1 }}>
-              <table className="data-table">
+              <table className="data-table" style={{ borderCollapse: 'collapse', width: '100%' }}>
               <thead>
                 <tr>
-                  <th>Usuário</th>
-                  <th>Contato</th>
-                  <th>Nível</th>
-                  <th>Cadastro</th>
-                  <th style={{ textAlign: 'center' }}>Ações</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f8fafc', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '1rem', borderRight: '1px solid var(--border-color)', fontWeight: '700', fontSize: '0.75rem', textAlign: 'left' }}>Código</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f8fafc', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '1rem', borderRight: '1px solid var(--border-color)', fontWeight: '700', fontSize: '0.75rem', textAlign: 'left' }}>Nome Completo</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f8fafc', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '1rem', borderRight: '1px solid var(--border-color)', fontWeight: '700', fontSize: '0.75rem', textAlign: 'left' }}>E-mail</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f8fafc', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '1rem', borderRight: '1px solid var(--border-color)', fontWeight: '700', fontSize: '0.75rem', textAlign: 'left' }}>Cadastrado em</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f8fafc', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '1rem', borderRight: '1px solid var(--border-color)', fontWeight: '700', fontSize: '0.75rem', textAlign: 'left' }}>Status</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f8fafc', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '1rem', textAlign: 'center', fontWeight: '700', fontSize: '0.75rem' }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.length === 0 ? (
-                  <tr><td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Nenhum usuário encontrado na pesquisa.</td></tr>
+                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Nenhum usuário encontrado na pesquisa.</td></tr>
                 ) : (
-                  currentUsers.map(user => (
-                    <tr key={user.id} style={{ cursor: 'default', opacity: user.status === 'inativo' ? 0.65 : 1 }}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: user.status === 'inativo' ? 'var(--border-color)' : 'var(--primary-hover)', color: user.status === 'inativo' ? 'var(--text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                            {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>{user.name}</span>
-                            {user.status === 'inativo' && (
-                              <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 'bold', textTransform: 'uppercase' }}>Inativo</span>
-                            )}
-                          </div>
+                  currentUsers.map((user, idx) => (
+                    <tr key={user.id} style={{ cursor: 'default', background: idx % 2 === 0 ? 'white' : '#f8fafc', borderBottom: '1px solid var(--border-color)' }} onMouseOver={e => e.currentTarget.style.background = '#e0e7ff'} onMouseOut={e => e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#f8fafc'}>
+                      <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                        {user.id || '---'}
+                      </td>
+                      <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-main)', fontWeight: '500' }}>
+                        {user.name}
+                      </td>
+                      <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                        {user.email}
+                      </td>
+                      <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                        {user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
+                      </td>
+                      <td style={{ padding: '1rem', fontSize: '0.875rem', fontWeight: '500', color: user.status === 'inativo' ? '#ef4444' : user.status === 'bloqueado' ? '#f59e0b' : '#10b981' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: user.status === 'inativo' ? '#ef4444' : user.status === 'bloqueado' ? '#f59e0b' : '#10b981', flexShrink: 0 }} />
+                          {user.status === 'inativo' ? 'Inativo' : user.status === 'bloqueado' ? 'Bloqueado' : 'Ativo'}
                         </div>
                       </td>
-                      <td>
-                        <div style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-main)' }}>{user.email}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.phone || 'Sem telefone'}</div>
-                      </td>
-                      <td>
-                        <span style={{ 
-                          padding: '0.35rem 0.85rem', 
-                          borderRadius: '999px', 
-                          fontSize: '0.7rem', 
-                          fontWeight: '700',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          border: '1px solid',
-                          ...getRoleBadgeStyle(user.role)
-                        }}>
-                          {user.role || 'Membro'}
-                        </span>
-                      </td>
-                      <td style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                        {user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString('pt-BR') : '-'}
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ padding: '0.5rem', textAlign: 'center' }}>
                         <UserActionsDropdown 
                           user={user} 
                           onView={() => setSelectedUser(user)}
                           onEdit={() => { setUserToEdit(user); setIsModalOpen(true); }}
-                          onDelete={() => handleDeleteUser(user)}
-                          onToggleStatus={() => handleToggleStatus(user)}
+                          onDelete={() => setUserToDelete(user)}
                         />
                       </td>
                     </tr>
@@ -167,29 +183,41 @@ const UserManagement = () => {
             </table>
             </div>
             
-            {totalPages > 1 && (
-              <div style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
-                <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                  Mostrando {indexOfFirstUser + 1} a {Math.min(indexOfLastUser, filteredUsers.length)} de {filteredUsers.length} usuários
-                </span>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button 
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    style={{ padding: '0.35rem 0.85rem', border: '1px solid var(--border-color)', background: currentPage === 1 ? 'rgba(0,0,0,0.02)' : 'white', borderRadius: '6px', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? 'var(--text-muted)' : 'var(--text-main)', fontSize: '0.875rem', transition: 'all 0.2s', fontWeight: '500' }}
-                  >
-                    Anterior
+            <div style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', background: 'white', flexShrink: 0 }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: '500' }}>
+                {indexOfFirstUser + 1} - {Math.min(indexOfLastUser, filteredUsers.length)} de {filteredUsers.length} Resultados
+              </span>
+              
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                  <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} style={{ padding: '0.25rem 0.5rem', background: 'transparent', border: 'none', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? 'var(--text-muted)' : 'var(--text-main)' }}>
+                    &lt;
                   </button>
-                  <button 
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    style={{ padding: '0.35rem 0.85rem', border: '1px solid var(--border-color)', background: currentPage === totalPages ? 'rgba(0,0,0,0.02)' : 'white', borderRadius: '6px', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? 'var(--text-muted)' : 'var(--text-main)', fontSize: '0.875rem', transition: 'all 0.2s', fontWeight: '500' }}
-                  >
-                    Próxima
+                  
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <button 
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      style={{ 
+                        width: '32px', height: '32px', borderRadius: '50%', 
+                        background: currentPage === i + 1 ? '#93c5fd' : 'transparent', 
+                        color: currentPage === i + 1 ? '#1e3a8a' : 'var(--text-main)', 
+                        border: 'none', cursor: 'pointer', fontWeight: '600',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s'
+                      }}
+                      onMouseOver={e => { if (currentPage !== i + 1) e.currentTarget.style.background = 'rgba(0,0,0,0.05)' }}
+                      onMouseOut={e => { if (currentPage !== i + 1) e.currentTarget.style.background = 'transparent' }}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+
+                  <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} style={{ padding: '0.25rem 0.5rem', background: 'transparent', border: 'none', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? 'var(--text-muted)' : 'var(--text-main)' }}>
+                    &gt;
                   </button>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </>
         )}
       </div>
@@ -203,6 +231,39 @@ const UserManagement = () => {
       {/* Slide-out details modal */}
       {selectedUser && (
         <UserDetailsModal user={selectedUser} onClose={() => setSelectedUser(null)} />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {userToDelete && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)' }}>
+          <div style={{ background: 'white', borderRadius: '12px', padding: '2rem', width: '90%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)', textAlign: 'center' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+              <Trash2 size={32} />
+            </div>
+            <h3 style={{ marginTop: 0, marginBottom: '0.75rem', color: '#0f172a', fontSize: '1.25rem', fontWeight: '700' }}>Confirmar Exclusão</h3>
+            <p style={{ margin: '0 0 2rem', color: '#475569', fontSize: '0.95rem', lineHeight: '1.5' }}>
+              Você tem certeza que deseja excluir o usuário <strong>{userToDelete.name}</strong>? Esta ação não pode ser desfeita.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button 
+                onClick={() => setUserToDelete(null)} 
+                style={{ flex: 1, padding: '0.75rem', background: 'white', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', fontWeight: '600', cursor: 'pointer' }}
+                onMouseOver={e => e.currentTarget.style.background = 'var(--surface-hover)'} 
+                onMouseOut={e => e.currentTarget.style.background = 'white'}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDeleteUser} 
+                style={{ flex: 1, padding: '0.75rem', background: '#ef4444', border: 'none', color: 'white', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+                onMouseOver={e => e.currentTarget.style.background = '#dc2626'} 
+                onMouseOut={e => e.currentTarget.style.background = '#ef4444'}
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -283,7 +344,7 @@ const UserDetailsModal = ({ user, onClose }) => {
   );
 };
 
-const UserActionsDropdown = ({ user, onEdit, onDelete, onToggleStatus, onView }) => {
+const UserActionsDropdown = ({ user, onEdit, onDelete, onView }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -319,21 +380,18 @@ const UserActionsDropdown = ({ user, onEdit, onDelete, onToggleStatus, onView })
               <Edit2 size={16} /> Editar
             </button>
             <button 
-              onClick={() => { setIsOpen(false); onToggleStatus(); }}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: 'none', border: 'none', color: user.status === 'inativo' ? '#059669' : '#d97706', fontSize: '0.875rem', cursor: 'pointer', textAlign: 'left', fontWeight: '500' }}
-              onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.03)'}
+              onClick={() => { 
+                if (user.status === 'inativo') {
+                  setIsOpen(false); 
+                  onDelete();
+                }
+              }}
+              disabled={user.status !== 'inativo'}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: 'none', border: 'none', color: user.status === 'inativo' ? '#ef4444' : '#fca5a5', fontSize: '0.875rem', cursor: user.status === 'inativo' ? 'pointer' : 'not-allowed', textAlign: 'left', fontWeight: '500', opacity: user.status === 'inativo' ? 1 : 0.6 }}
+              onMouseOver={e => { if (user.status === 'inativo') e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)' }}
               onMouseOut={e => e.currentTarget.style.background = 'transparent'}
             >
-              <Power size={16} /> {user.status === 'inativo' ? 'Reativar Conta' : 'Desativar Conta'}
-            </button>
-            <div style={{ height: '1px', background: 'var(--border-color)', margin: '0.25rem 0' }} />
-            <button 
-              onClick={() => { setIsOpen(false); onDelete(); }}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: 'none', border: 'none', color: '#ef4444', fontSize: '0.875rem', cursor: 'pointer', textAlign: 'left', fontWeight: '500' }}
-              onMouseOver={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)'}
-              onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <Trash2 size={16} /> Excluir permanentemente
+              <Trash2 size={16} /> Excluir
             </button>
           </div>
         </>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { X, UserPlus, Edit2, CheckCircle2, User, Mail, Phone, Shield, Users, MapPin, Calendar } from 'lucide-react';
+import { X, UserPlus, Edit2, CheckCircle2, User, Mail, Phone, Shield, Users, MapPin, Calendar, Power } from 'lucide-react';
 
 export const UserRegistrationModal = ({ isOpen, onClose, userToEdit = null }) => {
   const { userData, registerUserFromAdmin } = useAuth();
@@ -31,10 +31,11 @@ export const UserRegistrationModal = ({ isOpen, onClose, userToEdit = null }) =>
         age: userToEdit.age || '',
         cep: userToEdit.cep || '',
         role: userToEdit.role || 'membro',
-        cellId: userToEdit.cellId || ''
+        cellId: userToEdit.cellId || '',
+        status: userToEdit.status || 'ativo'
       });
     } else if (!userToEdit && isOpen) {
-      setFormData({ name: '', email: '', phone: '', age: '', cep: '', role: 'membro', cellId: '' });
+      setFormData({ name: '', email: '', phone: '', age: '', cep: '', role: 'membro', cellId: '', status: 'ativo' });
     }
   }, [userToEdit, isOpen]);
 
@@ -164,7 +165,7 @@ export const UserRegistrationModal = ({ isOpen, onClose, userToEdit = null }) =>
         setTimeout(() => {
           onClose();
           setSuccess('');
-          setFormData({ name: '', email: '', phone: '', age: '', cep: '', role: roles[0]?.value || 'membro', cellId: '' });
+          setFormData({ name: '', email: '', phone: '', age: '', cep: '', role: roles[0]?.value || 'membro', cellId: '', status: 'ativo' });
         }, 2500);
       }
     } catch (err) {
@@ -273,7 +274,19 @@ export const UserRegistrationModal = ({ isOpen, onClose, userToEdit = null }) =>
               <h3 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--primary-color)', fontWeight: '800', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Shield size={14} /> Permissões no Sistema
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: userToEdit ? '1fr 1fr 1fr' : '1fr 1fr', gap: '1.25rem' }}>
+                {userToEdit && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Status da Conta</label>
+                    <div style={{ position: 'relative' }}>
+                      <Power size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: formData.status === 'inativo' ? '#ef4444' : '#10b981' }} />
+                      <select style={{ width: '100%', background: 'white', paddingLeft: '2.5rem', border: '1px solid var(--border-color)', appearance: 'auto', color: formData.status === 'inativo' ? '#ef4444' : '#10b981', fontWeight: '600' }} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
+                        <option value="ativo">Ativo</option>
+                        <option value="inativo">Inativo</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Nível de Acesso *</label>
                   <select style={{ width: '100%', background: 'white', border: '1px solid var(--border-color)' }} value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
