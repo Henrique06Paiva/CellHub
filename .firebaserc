@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "cellhub-henrique-dev"
+  },
   "targets": {},
   "etags": {}
 }
