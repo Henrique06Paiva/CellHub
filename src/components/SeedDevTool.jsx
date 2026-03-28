@@ -7,6 +7,7 @@ import { Shield, Sparkles } from 'lucide-react';
 export const SeedDevTool = () => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const seedAsLeader = async () => {
     if (!currentUser) return;
@@ -93,35 +94,67 @@ export const SeedDevTool = () => {
 
   if (!currentUser) return null;
 
+  // Botão pequeno quando fechado
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        title="Abrir Ferramenta Dev"
+        style={{
+          position: 'fixed', bottom: '20px', right: '20px',
+          width: '40px', height: '40px', borderRadius: '50%',
+          background: 'rgba(0,0,0,0.7)', border: '2px solid rgba(16, 185, 129, 0.4)',
+          color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', zIndex: 9999, transition: 'all 0.2s',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+        }}
+        onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.borderColor = '#10b981'; }}
+        onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.4)'; }}
+      >
+        <Sparkles size={18} />
+      </button>
+    );
+  }
+
+  // Painel expandido
   return (
     <div style={{
       position: 'fixed', bottom: '20px', right: '20px', 
-      background: 'rgba(0,0,0,0.85)', padding: '15px', borderRadius: '12px',
+      background: 'rgba(0,0,0,0.9)', padding: '15px', borderRadius: '12px',
       color: 'white', display: 'flex', flexDirection: 'column', gap: '10px',
       boxShadow: '0 10px 25px rgba(0,0,0,0.4)', zIndex: 9999,
-      maxWidth: '300px'
+      maxWidth: '300px', border: '1px solid rgba(16, 185, 129, 0.2)'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: '#10b981', fontWeight: 'bold' }}>
-        <Sparkles size={16} /> Ferramenta Dev (Firebase Seed)
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: '#10b981', fontWeight: 'bold' }}>
+          <Sparkles size={16} /> Ferramenta Dev
+        </div>
+        <button
+          onClick={() => setIsOpen(false)}
+          style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px', lineHeight: 1, fontSize: '1.1rem' }}
+          title="Minimizar"
+        >
+          ✕
+        </button>
       </div>
-      <p style={{ fontSize: '0.75rem', color: '#cbd5e1', lineHeight: '1.4' }}>
-        O banco Firebase está vazio. Clique abaixo para gerar Células e Redes aleatórias atreladas a você para que consiga testar o sistema.
+      <p style={{ fontSize: '0.75rem', color: '#cbd5e1', lineHeight: '1.4', margin: 0 }}>
+        Gere dados de teste (Células, Redes, Membros) para testar o sistema.
       </p>
       
       <button 
         onClick={seedAsLeader} 
         disabled={loading}
-        style={{ background: '#2563eb', color: 'white', padding: '8px', borderRadius: '6px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        style={{ background: '#2563eb', color: 'white', padding: '8px', borderRadius: '6px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: loading ? 'wait' : 'pointer' }}
       >
-        <Shield size={14} /> Tornar-me "Líder" de Célula de Teste
+        <Shield size={14} /> Tornar-me "Líder"
       </button>
 
       <button 
         onClick={seedAsDiscipler} 
         disabled={loading}
-        style={{ background: '#f59e0b', color: 'white', padding: '8px', borderRadius: '6px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        style={{ background: '#f59e0b', color: 'white', padding: '8px', borderRadius: '6px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: loading ? 'wait' : 'pointer' }}
       >
-        <Shield size={14} /> Tornar-me "Discipulador" de Rede
+        <Shield size={14} /> Tornar-me "Discipulador"
       </button>
     </div>
   );
