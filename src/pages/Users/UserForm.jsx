@@ -13,6 +13,7 @@ const UserForm = () => {
   const [fetchingUser, setFetchingUser] = useState(!!id);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   
   const [formData, setFormData] = useState({
     name: '', email: '', phone: '', age: '', cep: '', role: 'membro', cellId: '', status: 'ativo'
@@ -94,35 +95,35 @@ const UserForm = () => {
   };
   const roles = getAvailableRoles();
 
+  const clearFieldError = (field) => {
+    setFieldErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+  };
+
+  const errBorder = (field) => fieldErrors[field] ? 'var(--danger-color)' : 'var(--border-color)';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    
-    if (!formData.name.trim() || !formData.email.trim()) {
-      setError('Nome e E-mail são obrigatórios.');
-      return;
-    }
+
+    // Field-level validation
+    const errors = {};
+    if (!formData.name.trim()) errors.name = 'Campo obrigatório.';
+    if (!formData.email.trim()) errors.email = 'Campo obrigatório.';
 
     const unmaskedPhone = formData.phone.replace(/\D/g, '');
-    if (unmaskedPhone && unmaskedPhone.length < 10) {
-      setError('O telefone deve ter pelo menos DDD + 8 dígitos.');
-      return;
-    }
+    if (unmaskedPhone && unmaskedPhone.length < 10) errors.phone = 'Deve ter pelo menos DDD + 8 dígitos.';
     
-    if (formData.age && (formData.age < 0 || formData.age > 130)) {
-      setError('Idade inválida.');
-      return;
-    }
+    if (formData.age && (formData.age < 0 || formData.age > 130)) errors.age = 'Idade inválida.';
 
     const unmaskedCep = formData.cep.replace(/\D/g, '');
-    if (unmaskedCep && unmaskedCep.length !== 8) {
-      setError('O CEP deve conter exatamente 8 números.');
-      return;
-    }
+    if (unmaskedCep && unmaskedCep.length !== 8) errors.cep = 'Deve conter 8 números.';
 
-    if (['membro', 'lider', 'leader'].includes(formData.role) && !formData.cellId) {
-      setError('Por favor, selecione uma Célula para vincular este usuário.');
+    if (['membro', 'lider', 'leader'].includes(formData.role) && !formData.cellId) errors.cellId = 'Campo obrigatório.';
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setError('Preencha todos os campos obrigatórios.');
       return;
     }
 
@@ -189,6 +190,10 @@ const UserForm = () => {
         {error && <div style={{ padding: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderLeft: '4px solid var(--danger-color)', color: 'var(--danger-color)', borderRadius: '4px', marginBottom: '2rem', fontSize: '0.875rem', fontWeight: '600' }}>{error}</div>}
         {success && <div style={{ padding: '1rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderLeft: '4px solid var(--success-color)', color: 'var(--success-color)', borderRadius: '4px', marginBottom: '2rem', fontSize: '0.875rem', fontWeight: '600' }}>{success}</div>}
 
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontStyle: 'italic' }}>
+          Campos com <span style={{ color: 'var(--danger-color)', fontWeight: '700', fontStyle: 'normal' }}>*</span> são campos obrigatórios.
+        </p>
+
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
           
           {/* Identificação Principal */}
@@ -198,25 +203,28 @@ const UserForm = () => {
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Nome Completo *</label>
-                <input type="text" style={{ width: '100%', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.65rem 1rem' }} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ex: João da Silva" />
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Nome Completo <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+                <input type="text" style={{ width: '100%', border: `1px solid ${errBorder('name')}`, borderRadius: '6px', padding: '0.65rem 1rem', boxShadow: fieldErrors.name ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : 'none' }} value={formData.name} onChange={e => { setFormData({...formData, name: e.target.value}); clearFieldError('name'); }} placeholder="Ex: João da Silva" />
+                {fieldErrors.name && <span style={{ color: 'var(--danger-color)', fontSize: '0.75rem', marginTop: '0.35rem', display: 'block' }}>{fieldErrors.name}</span>}
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>E-mail *</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>E-mail <span style={{ color: 'var(--danger-color)' }}>*</span></label>
                 <div style={{ position: 'relative', opacity: id ? 0.7 : 1 }}>
-                  <Mail size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input type="email" style={{ width: '100%', paddingLeft: '2.5rem', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.65rem 1rem 0.65rem 2.8rem', backgroundColor: id ? 'var(--surface-color)' : 'transparent', cursor: id ? 'not-allowed' : 'text', color: id ? 'var(--text-muted)' : 'var(--text-main)' }} placeholder="email@exemplo.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value.replace(/\s/g, '')})} disabled={!!id} />
+                  <Mail size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: fieldErrors.email ? 'var(--danger-color)' : 'var(--text-muted)' }} />
+                  <input type="email" style={{ width: '100%', paddingLeft: '2.5rem', border: `1px solid ${errBorder('email')}`, borderRadius: '6px', padding: '0.65rem 1rem 0.65rem 2.8rem', backgroundColor: id ? 'var(--surface-color)' : 'transparent', cursor: id ? 'not-allowed' : 'text', color: id ? 'var(--text-muted)' : 'var(--text-main)', boxShadow: fieldErrors.email ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : 'none' }} placeholder="email@exemplo.com" value={formData.email} onChange={e => { setFormData({...formData, email: e.target.value.replace(/\s/g, '')}); clearFieldError('email'); }} disabled={!!id} />
                 </div>
+                {fieldErrors.email && <span style={{ color: 'var(--danger-color)', fontSize: '0.75rem', marginTop: '0.35rem', display: 'block' }}>{fieldErrors.email}</span>}
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Telefone</label>
                 <div style={{ position: 'relative' }}>
                   <Phone size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input type="text" style={{ width: '100%', paddingLeft: '2.8rem', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.65rem 1rem 0.65rem 2.8rem' }} placeholder="(00) 00000-0000" value={formData.phone} onChange={e => {
+                  <input type="text" style={{ width: '100%', paddingLeft: '2.8rem', border: `1px solid ${errBorder('phone')}`, borderRadius: '6px', padding: '0.65rem 1rem 0.65rem 2.8rem', boxShadow: fieldErrors.phone ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : 'none' }} placeholder="(00) 00000-0000" value={formData.phone} onChange={e => {
                     const val = e.target.value.replace(/\D/g, '').replace(/^(\d{2})(\d)/g, '($1) $2').replace(/(\d)(\d{4})$/, '$1-$2').substring(0, 15);
-                    setFormData({...formData, phone: val});
+                    setFormData({...formData, phone: val}); clearFieldError('phone');
                   }} />
                 </div>
+                {fieldErrors.phone && <span style={{ color: 'var(--danger-color)', fontSize: '0.75rem', marginTop: '0.35rem', display: 'block' }}>{fieldErrors.phone}</span>}
               </div>
             </div>
           </div>
@@ -243,7 +251,7 @@ const UserForm = () => {
                 </div>
               )}
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Nível de Acesso *</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Nível de Acesso <span style={{ color: 'var(--danger-color)' }}>*</span></label>
                 <CustomSelect 
                   value={formData.role} 
                   onChange={val => setFormData({...formData, role: val})}
@@ -251,15 +259,17 @@ const UserForm = () => {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Vincular à Célula *</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Vincular à Célula <span style={{ color: 'var(--danger-color)' }}>*</span></label>
                 <CustomSelect 
                   value={formData.cellId} 
-                  onChange={val => setFormData({...formData, cellId: val})}
+                  onChange={val => { setFormData({...formData, cellId: val}); clearFieldError('cellId'); }}
                   options={cells.map(c => ({ value: c.id, label: c.name }))}
                   icon={Users}
                   disabled={cells.length <= 1 || ['lider', 'leader'].includes(userData?.role?.toLowerCase())}
                   placeholder="Selecione a Célula..."
+                  hasError={!!fieldErrors.cellId}
                 />
+                {fieldErrors.cellId && <span style={{ color: 'var(--danger-color)', fontSize: '0.75rem', marginTop: '0.35rem', display: 'block' }}>{fieldErrors.cellId}</span>}
               </div>
             </div>
           </div>
@@ -274,15 +284,17 @@ const UserForm = () => {
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Idade</label>
                 <div style={{ position: 'relative' }}>
                   <Calendar size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input type="number" min="0" max="130" style={{ width: '100%', paddingLeft: '2.8rem', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.65rem 1rem 0.65rem 2.8rem' }} placeholder="Ex: 25" value={formData.age} onChange={e => setFormData({...formData, age: e.target.value})} />
+                  <input type="number" min="0" max="130" style={{ width: '100%', paddingLeft: '2.8rem', border: `1px solid ${errBorder('age')}`, borderRadius: '6px', padding: '0.65rem 1rem 0.65rem 2.8rem', boxShadow: fieldErrors.age ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : 'none' }} placeholder="Ex: 25" value={formData.age} onChange={e => { setFormData({...formData, age: e.target.value}); clearFieldError('age'); }} />
                 </div>
+                {fieldErrors.age && <span style={{ color: 'var(--danger-color)', fontSize: '0.75rem', marginTop: '0.35rem', display: 'block' }}>{fieldErrors.age}</span>}
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>CEP</label>
-                <input type="text" style={{ width: '100%', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.65rem 1rem' }} placeholder="00000-000" value={formData.cep} onChange={e => {
+                <input type="text" style={{ width: '100%', border: `1px solid ${errBorder('cep')}`, borderRadius: '6px', padding: '0.65rem 1rem', boxShadow: fieldErrors.cep ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : 'none' }} placeholder="00000-000" value={formData.cep} onChange={e => {
                   const val = e.target.value.replace(/\D/g, '').replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
-                  setFormData({...formData, cep: val});
+                  setFormData({...formData, cep: val}); clearFieldError('cep');
                 }} />
+                {fieldErrors.cep && <span style={{ color: 'var(--danger-color)', fontSize: '0.75rem', marginTop: '0.35rem', display: 'block' }}>{fieldErrors.cep}</span>}
               </div>
             </div>
           </div>
@@ -302,7 +314,7 @@ const UserForm = () => {
   );
 };
 
-const CustomSelect = ({ value, onChange, options, icon: Icon, placeholder = "Selecione...", disabled = false, colorConfig }) => {
+const CustomSelect = ({ value, onChange, options, icon: Icon, placeholder = "Selecione...", disabled = false, colorConfig, hasError = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = React.useRef(null);
 
@@ -330,7 +342,7 @@ const CustomSelect = ({ value, onChange, options, icon: Icon, placeholder = "Sel
         style={{
           width: '100%', 
           padding: Icon ? '0.65rem 2.8rem 0.65rem 2.8rem' : '0.65rem 2.8rem 0.65rem 1rem',
-          border: isOpen ? '1px solid var(--primary-color)' : '1px solid var(--border-color)', 
+          border: hasError ? '1px solid var(--danger-color)' : isOpen ? '1px solid var(--primary-color)' : '1px solid var(--border-color)', 
           borderRadius: '6px', 
           backgroundColor: disabled ? 'var(--bg-color)' : 'var(--surface-color)',
           color: currentColor,
@@ -341,7 +353,7 @@ const CustomSelect = ({ value, onChange, options, icon: Icon, placeholder = "Sel
           justifyContent: 'space-between',
           transition: 'all 0.2s',
           minHeight: '44px',
-          boxShadow: isOpen ? '0 0 0 3px rgba(79, 70, 229, 0.1)' : 'none',
+          boxShadow: hasError ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : isOpen ? '0 0 0 3px rgba(79, 70, 229, 0.1)' : 'none',
           userSelect: 'none'
         }}
       >
