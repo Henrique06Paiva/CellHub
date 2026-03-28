@@ -7,7 +7,7 @@ import {
   sendPasswordResetEmail,
   getAuth
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { initializeApp, getApp } from 'firebase/app';
 import { auth, db, firebaseConfig } from '../lib/firebase';
 
@@ -43,8 +43,21 @@ export function AuthProvider({ children }) {
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, userData.email, tempPassword);
       const newUserId = userCredential.user.uid;
 
-      // Salva dados no banco Principal
+      // Gera displayId sequencial via Transaction atômica (garante unicidade)
+      const counterRef = doc(db, 'counters', 'users');
+      const newDisplayId = await runTransaction(db, async (transaction) => {
+        const counterDoc = await transaction.get(counterRef);
+        let nextId = 1;
+        if (counterDoc.exists()) {
+          nextId = (counterDoc.data().lastId || 0) + 1;
+        }
+        transaction.set(counterRef, { lastId: nextId });
+        return nextId;
+      });
+
+      // Salva dados no banco Principal com displayId sequencial
       await setDoc(doc(db, 'users', newUserId), {
+        displayId: newDisplayId,
         name: userData.name,
         email: userData.email,
         phone: userData.phone || '',

@@ -44,8 +44,10 @@ const UserManagement = () => {
   }, []);
 
   const filteredUsers = users.filter(user => {
+    const displayIdStr = user.displayId ? String(user.displayId) : '';
     const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+                          user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          displayIdStr.includes(searchTerm);
     if (!matchesSearch) return false;
     
     // Status normalization: undefined/null usually means active in our legacy data
@@ -149,8 +151,8 @@ const UserManagement = () => {
                 ) : (
                   currentUsers.map((user, idx) => (
                     <tr key={user.id} style={{ cursor: 'default', background: idx % 2 === 0 ? 'var(--surface-color)' : 'var(--surface-hover)', borderBottom: '1px solid var(--border-color)' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(79, 70, 229, 0.1)'} onMouseOut={e => e.currentTarget.style.background = idx % 2 === 0 ? 'var(--surface-color)' : 'var(--surface-hover)'}>
-                      <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                        {user.id || '---'}
+                      <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--primary-light)', fontWeight: '700', fontFamily: 'monospace' }}>
+                        {user.displayId ? `#${String(user.displayId).padStart(3, '0')}` : '---'}
                       </td>
                       <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-main)', fontWeight: '500' }}>
                         {user.name}

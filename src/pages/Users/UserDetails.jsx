@@ -83,7 +83,12 @@ const UserDetails = () => {
             {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
           </div>
           <div>
-            <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.75rem', fontWeight: '800', color: 'var(--text-main)' }}>{user.name}</h2>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '0.75rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.75rem', fontWeight: '800', color: 'var(--text-main)' }}>{user.name}</h2>
+              {user.displayId && (
+                <span style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--primary-light)', fontFamily: 'monospace' }}>#{String(user.displayId).padStart(3, '0')}</span>
+              )}
+            </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <span style={{ 
                 padding: '0.35rem 1rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', border: '1px solid', ...getRoleBadgeStyle(user.role)
@@ -140,8 +145,8 @@ const UserDetails = () => {
                   <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>{user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' }) : 'Desconhecida'}</span>
                 </div>
                 <div>
-                  <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Security Identity (ID)</span>
-                  <span style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text-muted)', background: 'var(--surface-color)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{user.id}</span>
+                  <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Código do Usuário</span>
+                  <span style={{ fontWeight: '700', color: 'var(--primary-light)', fontFamily: 'monospace', fontSize: '1.1rem' }}>{user.displayId ? `#${String(user.displayId).padStart(3, '0')}` : 'Não atribuído'}</span>
                 </div>
               </div>
             </div>
