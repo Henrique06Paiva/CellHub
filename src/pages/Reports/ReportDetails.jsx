@@ -2,13 +2,55 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CalendarDays, Users, UserPlus, CheckCircle, XCircle, FileText, Camera } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Users, UserPlus, CheckCircle, XCircle, FileText, Camera, Download, Printer } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const ReportDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const reportRef = React.useRef(null);
+
+  const handleGeneratePDF = async () => {
+    if (!reportRef.current) return;
+    
+    setGeneratingPDF(true);
+    try {
+      const element = reportRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#0f172a',
+        onclone: (clonedDoc) => {
+          const header = clonedDoc.getElementById('pdf-header');
+          if (header) header.style.display = 'block';
+        }
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Relatorio_${report.cellName}_${report.date}.pdf`);
+    } catch (err) {
+      console.error('Erro ao gerar PDF:', err);
+      alert('Erro ao gerar o PDF. Verifique se as bibliotecas jspdf e html2canvas estão instaladas.');
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -62,9 +104,44 @@ const ReportDetails = () => {
           </button>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-main)' }}>Detalhes do Relatório</h1>
         </div>
+        <button 
+          onClick={handleGeneratePDF}
+          disabled={generatingPDF}
+          className="btn-primary"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1.25rem' }}
+        >
+          {generatingPDF ? (
+            <>
+              <div style={{ width: '16px', height: '16px', border: '2px solid white', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              Gerando...
+            </>
+          ) : (
+            <>
+              <Printer size={18} />
+              Gerar PDF
+            </>
+          )}
+        </button>
       </div>
 
-      <div className="card static" style={{ padding: '3rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+      <div ref={reportRef} className="card static" style={{ padding: '3rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+        
+        {/* Print Header (Visible in PDF) */}
+        <div id="pdf-header" className="pdf-only" style={{ display: 'none', marginBottom: '1rem', borderBottom: '2px solid var(--primary-color)', paddingBottom: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <img src="/nexo-logo.jpeg" alt="Logo" style={{ width: '50px', height: '50px', borderRadius: '8px' }} />
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--primary-color)' }}>Nexo-Hub</h2>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gestão Inteligente de Células</p>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 'bold' }}>Relatório Semanal</p>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date().toLocaleDateString('pt-BR')}</p>
+            </div>
+          </div>
+        </div>
 
         {/* Top Summary */}
         <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
@@ -120,10 +197,17 @@ const ReportDetails = () => {
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               {presentMembers.length > 0 ? presentMembers.map((m, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 0.85rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success-color)', flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-main)' }}>{m.name}</span>
-                </div>
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', padding: '0.6rem 0.85rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success-color)', flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-main)' }}>{m.name}</span>
+                    </div>
+                    {m.observation && (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '1.1rem', fontStyle: 'italic' }}>
+                        "{m.observation}"
+                      </span>
+                    )}
+                  </div>
               )) : (
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Nenhum membro presente.</span>
               )}
@@ -137,10 +221,17 @@ const ReportDetails = () => {
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               {absentMembers.length > 0 ? absentMembers.map((m, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 0.85rem', background: 'rgba(239, 68, 68, 0.04)', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.12)' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--danger-color)', flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-muted)' }}>{m.name}</span>
-                </div>
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', padding: '0.6rem 0.85rem', background: 'rgba(239, 68, 68, 0.04)', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.12)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--danger-color)', flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-muted)' }}>{m.name}</span>
+                    </div>
+                    {m.observation && (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--danger-color)', opacity: 0.8, marginLeft: '1.1rem', fontStyle: 'italic' }}>
+                        Motivo: {m.observation}
+                      </span>
+                    )}
+                  </div>
               )) : (
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Todos estiveram presentes! 🎉</span>
               )}

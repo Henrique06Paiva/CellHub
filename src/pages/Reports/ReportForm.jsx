@@ -80,6 +80,7 @@ const ReportForm = () => {
   // Form fields
   const [meetingDay, setMeetingDay] = useState('');
   const [presentIds, setPresentIds] = useState([]);
+  const [memberObservations, setMemberObservations] = useState({}); // { uid: string }
   const [visitors, setVisitors] = useState('');
   const [notes, setNotes] = useState('');
   const [photo, setPhoto] = useState(null);
@@ -165,6 +166,10 @@ const ReportForm = () => {
     setPresentIds(prev =>
       prev.includes(uid) ? prev.filter(id => id !== uid) : [...prev, uid]
     );
+  };
+
+  const handleObservationChange = (uid, val) => {
+    setMemberObservations(prev => ({ ...prev, [uid]: val }));
   };
 
   const selectAll = () => {
@@ -259,7 +264,8 @@ const ReportForm = () => {
       const membersPresence = members.map(m => ({
         uid: m.uid,
         name: m.name,
-        present: presentIds.includes(m.uid)
+        present: presentIds.includes(m.uid),
+        observation: memberObservations[m.uid] || ''
       }));
 
       const reportData = {
@@ -445,40 +451,67 @@ const ReportForm = () => {
               </button>
             </div>
 
-            {/* Members Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+            {/* Members List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
               {members.length > 0 ? members.map(m => {
                 const isPresent = presentIds.includes(m.uid);
                 return (
-                  <label
+                  <div
                     key={m.uid}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer',
-                      padding: '0.7rem 0.85rem',
-                      background: isPresent ? 'rgba(16, 185, 129, 0.08)' : 'var(--surface-color)',
-                      borderRadius: '8px',
-                      border: isPresent ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-color)',
-                      transition: 'all 0.15s ease',
-                      userSelect: 'none'
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      gap: '0.5rem',
+                      padding: '0.85rem',
+                      background: isPresent ? 'rgba(16, 185, 129, 0.05)' : 'var(--surface-color)',
+                      borderRadius: '10px',
+                      border: isPresent ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid var(--border-color)',
+                      transition: 'all 0.2s ease',
                     }}
                   >
-                    <div style={{
-                      width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0,
-                      border: isPresent ? '2px solid var(--success-color)' : '2px solid var(--text-muted)',
-                      background: isPresent ? 'var(--success-color)' : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'all 0.15s ease'
-                    }}>
-                      {isPresent && <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: 'bold' }}>✓</span>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <label 
+                        onClick={() => toggleMember(m.uid)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', flex: 1, userSelect: 'none' }}
+                      >
+                        <div style={{
+                          width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0,
+                          border: isPresent ? '2px solid var(--success-color)' : '2px solid var(--text-muted)',
+                          background: isPresent ? 'var(--success-color)' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all 0.15s ease'
+                        }}>
+                          {isPresent && <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: 'bold' }}>✓</span>}
+                        </div>
+                        <span style={{ fontSize: '0.95rem', fontWeight: isPresent ? '700' : '500', color: isPresent ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                          {m.name}
+                        </span>
+                      </label>
+                      <button 
+                        type="button"
+                        onClick={() => toggleMember(m.uid)}
+                        style={{ fontSize: '0.7rem', fontWeight: '700', padding: '0.25rem 0.5rem', borderRadius: '4px', border: 'none', background: isPresent ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: isPresent ? 'var(--success-color)' : 'var(--danger-color)', cursor: 'pointer' }}
+                      >
+                        {isPresent ? 'Presente' : 'Ausente'}
+                      </button>
                     </div>
-                    <input type="checkbox" checked={isPresent} onChange={() => toggleMember(m.uid)} style={{ display: 'none' }} />
-                    <span style={{ fontSize: '0.875rem', fontWeight: isPresent ? '600' : '400', color: isPresent ? 'var(--text-main)' : 'var(--text-muted)' }}>
-                      {m.name}
-                    </span>
-                  </label>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                      <FileText size={14} color="var(--text-muted)" />
+                      <input 
+                        type="text"
+                        placeholder={isPresent ? "Observação (opcional)" : "Motivo da ausência..."}
+                        value={memberObservations[m.uid] || ''}
+                        onChange={(e) => handleObservationChange(m.uid, e.target.value)}
+                        style={{ flex: 1, background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', fontSize: '0.8rem', color: 'var(--text-main)', padding: '0.2rem 0', outline: 'none' }}
+                        onFocus={(e) => e.target.style.borderBottom = '1px solid var(--primary-color)'}
+                        onBlur={(e) => e.target.style.borderBottom = '1px solid var(--border-color)'}
+                      />
+                    </div>
+                  </div>
                 );
               }) : (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', padding: '1rem', gridColumn: '1 / -1' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', padding: '1rem', textAlign: 'center' }}>
                   Nenhum membro cadastrado nesta célula.
                 </div>
               )}
