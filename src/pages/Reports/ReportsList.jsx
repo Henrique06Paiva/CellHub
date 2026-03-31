@@ -14,6 +14,7 @@ const ReportsList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [cellFilter, setCellFilter] = useState('Todas');
+  const [dateFilter, setDateFilter] = useState('Todos');
   const [currentPage, setCurrentPage] = useState(1);
   const reportsPerPage = 10;
 
@@ -52,27 +53,49 @@ const ReportsList = () => {
     fetchReports();
   }, [fetchReports, location.state]);
 
-  // Stats
-  const totalReports = reports.length;
-  const avgPresence = totalReports > 0
-    ? Math.round(reports.reduce((sum, r) => sum + (r.totalMembers > 0 ? (r.presentCount / r.totalMembers) * 100 : 0), 0) / totalReports)
-    : 0;
-  const totalVisitors = reports.reduce((sum, r) => sum + (r.visitors || 0), 0);
-  
   const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay());
-  startOfWeek.setHours(0, 0, 0, 0);
-  const hasReportThisWeek = reports.some(r => new Date(r.date) >= startOfWeek);
+  
+  // Date Filtering Logic
+  const getStartDate = (filter) => {
+    const d = new Date(now);
+    d.setHours(0,0,0,0);
+    if (filter === 'Última Semana') { d.setDate(d.getDate() - 7); return d; }
+    if (filter === 'Último Mês') { d.setMonth(d.getMonth() - 1); return d; }
+    if (filter === '3 Meses') { d.setMonth(d.getMonth() - 3); return d; }
+    if (filter === 'Este Ano') { d.setFullYear(d.getFullYear(), 0, 1); return d; }
+    return null; // Todos
+  };
 
-  // Filters
   const filteredReports = reports.filter(r => {
     const matchesSearch = r.cellName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           r.leaderName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           r.date?.includes(searchTerm);
     const matchesCell = cellFilter === 'Todas' || r.cellName === cellFilter;
-    return matchesSearch && matchesCell;
+    
+    let matchesDate = true;
+    const startDate = getStartDate(dateFilter);
+    if (startDate) {
+      // Use noon to avoid timezone shift into the previous day
+      const reportDate = new Date(r.date + 'T12:00:00');
+      matchesDate = reportDate >= startDate;
+    }
+    
+    return matchesSearch && matchesCell && matchesDate;
   });
+
+  // Stats (Based on filtered data)
+  const totalReports = filteredReports.length;
+  const avgPresence = totalReports > 0
+    ? Math.round(filteredReports.reduce((sum, r) => sum + (r.totalMembers > 0 ? (r.presentCount / r.totalMembers) * 100 : 0), 0) / totalReports)
+    : 0;
+  const totalVisitors = filteredReports.reduce((sum, r) => sum + (r.visitors || 0), 0);
+  
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  // Use T12:00:00 to safely check if report is within current week local
+  const hasReportThisWeek = reports.some(r => new Date(r.date + 'T12:00:00') >= startOfWeek);
 
   const indexOfLast = currentPage * reportsPerPage;
   const indexOfFirst = indexOfLast - reportsPerPage;
@@ -186,15 +209,15 @@ const ReportsList = () => {
             <>
               <div style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.25rem' }} />
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                {['Todas', ...cells].map(cell => (
+                {['Todas', ...cells.slice(0, 3)].map(cell => (
                   <button
                     key={cell}
                     onClick={() => { setCellFilter(cell); setCurrentPage(1); }}
                     style={{
                       padding: '0.4rem 0.85rem', borderRadius: '6px', border: 'none',
                       fontSize: '0.8rem', fontWeight: '500', cursor: 'pointer',
-                      transition: 'background 0.2s, color 0.2s',
-                      background: cellFilter === cell ? 'rgba(79, 70, 229, 0.15)' : 'rgba(0,0,0,0.03)',
+                      transition: 'all 0.2s',
+                      background: cellFilter === cell ? 'rgba(79, 70, 229, 0.15)' : 'rgba(255,255,255,0.03)',
                       color: cellFilter === cell ? 'var(--primary-color)' : 'var(--text-muted)',
                       whiteSpace: 'nowrap'
                     }}
@@ -202,9 +225,41 @@ const ReportsList = () => {
                     {cell}
                   </button>
                 ))}
+                {cells.length > 3 && (
+                   <select 
+                    value={cells.includes(cellFilter) && !['Todas', ...cells.slice(0, 3)].includes(cellFilter) ? cellFilter : 'Outros'}
+                    onChange={(e) => { setCellFilter(e.target.value); setCurrentPage(1); }}
+                    style={{ padding: '0.4rem 0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--surface-color)', color: 'var(--text-muted)', fontSize: '0.8rem', outline: 'none' }}
+                   >
+                     <option value="Outros" disabled>Outras células...</option>
+                     {cells.slice(3).map(c => <option key={c} value={c}>{c}</option>)}
+                   </select>
+                )}
               </div>
             </>
           )}
+
+          <div style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.25rem' }} />
+          
+          {/* Date Filter */}
+          <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+            {['Todos', 'Última Semana', 'Último Mês', '3 Meses', 'Este Ano'].map(period => (
+              <button
+                key={period}
+                onClick={() => { setDateFilter(period); setCurrentPage(1); }}
+                style={{
+                  padding: '0.4rem 0.75rem', borderRadius: '6px', border: 'none',
+                  fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  background: dateFilter === period ? 'rgba(79, 70, 229, 0.15)' : 'transparent',
+                  color: dateFilter === period ? 'var(--primary-color)' : 'var(--text-muted)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {period}
+              </button>
+            ))}
+          </div>
 
           <div style={{ flex: 1 }} />
 

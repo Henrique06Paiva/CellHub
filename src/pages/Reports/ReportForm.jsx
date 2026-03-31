@@ -23,6 +23,46 @@ const FieldError = ({ message }) => message ? (
   </span>
 ) : null;
 
+// Image compression utility
+const compressImage = (file, maxWidth = 1200, quality = 0.7) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = (maxWidth / width) * height;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            reject(new Error('Compression failed'));
+          }
+        }, 'image/jpeg', quality);
+      };
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 const ReportForm = () => {
   const navigate = useNavigate();
   const { currentUser, userData } = useAuth();
@@ -56,6 +96,15 @@ const ReportForm = () => {
         setLoading(false);
         return;
       }
+
+      // 1. Try to load members from cache first for instant UI
+      const cacheKey = `members_${userData.cellId}`;
+      const cachedMembers = sessionStorage.getItem(cacheKey);
+      if (cachedMembers) {
+        setMembers(JSON.parse(cachedMembers));
+        // We still fetch from Firestore to ensure data is fresh but UI is already usable
+      }
+
       try {
         const cellQ = query(collection(db, 'cells'), where('__name__', '==', userData.cellId));
         const cellSnap = await getDocs(cellQ);
@@ -66,28 +115,44 @@ const ReportForm = () => {
         const memQ = query(collection(db, 'users'), where('cellId', '==', userData.cellId));
         const memSnap = await getDocs(memQ);
         const membersList = memSnap.docs.map(d => ({ uid: d.id, name: d.data().name, email: d.data().email }));
+        
         setMembers(membersList);
+        sessionStorage.setItem(cacheKey, JSON.stringify(membersList));
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+        if (!cachedMembers) {
+          setError('Erro ao carregar dados da célula.');
+        }
+      }
 
-        // Check if report already sent this week
+      // Check if report already sent this week
+      try {
         const now = new Date();
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
-        const startStr = startOfWeek.toISOString().split('T')[0];
+        
+        // Use local date string instead of ISO to avoid timezone shifts
+        const y = startOfWeek.getFullYear();
+        const m = String(startOfWeek.getMonth() + 1).padStart(2, '0');
+        const d = String(startOfWeek.getDate()).padStart(2, '0');
+        const startStr = `${y}-${m}-${d}`;
+
+        // Fetch all reports for the cell and filter in memory to avoid "Building Index" errors
         const repQ = query(
           collection(db, 'reports'),
-          where('cellId', '==', userData.cellId),
-          where('date', '>=', startStr)
+          where('cellId', '==', userData.cellId)
         );
         const repSnap = await getDocs(repQ);
-        if (!repSnap.empty) {
+        // Compare dates safely using noon for the report and the local week start string
+        const hasThisWeek = repSnap.docs.some(d => d.data().date >= startStr);
+        if (hasThisWeek) {
           setAlreadySentThisWeek(true);
         }
       } catch (err) {
-        console.error('Erro ao carregar dados:', err);
-        setError('Erro ao carregar dados da célula.');
-      } finally {
-        setLoading(false);
+        console.warn('Não foi possível verificar relatório semanal:', err);
       }
+
+      setLoading(false);
     };
     fetchData();
   }, [userData]);
@@ -110,7 +175,7 @@ const ReportForm = () => {
     }
   };
 
-  const handlePhotoChange = (e) => {
+  const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -118,15 +183,18 @@ const ReportForm = () => {
       setError('Por favor, selecione apenas arquivos de imagem.');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError('A imagem deve ter no máximo 5MB.');
-      return;
-    }
 
-    setPhoto(file);
-    setPhotoPreview(URL.createObjectURL(file));
-    clearFieldError('photo');
-    setError('');
+    try {
+      // Compress image before setting it to state
+      const compressed = await compressImage(file);
+      setPhoto(compressed);
+      setPhotoPreview(URL.createObjectURL(compressed));
+      clearFieldError('photo');
+      setError('');
+    } catch (err) {
+      console.error('Error compressing image:', err);
+      setError('Erro ao processar imagem. Tente outra.');
+    }
   };
 
   const removePhoto = () => {
@@ -153,20 +221,26 @@ const ReportForm = () => {
       return;
     }
 
-    // Check weekly limit again before submitting
+    // Check weekly limit again before submitting (safe memory filter)
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
-    const startStr = startOfWeek.toISOString().split('T')[0];
+    
+    // Use local date string instead of ISO to avoid timezone shifts
+    const y = startOfWeek.getFullYear();
+    const m = String(startOfWeek.getMonth() + 1).padStart(2, '0');
+    const d = String(startOfWeek.getDate()).padStart(2, '0');
+    const startStr = `${y}-${m}-${d}`;
+
     setSubmitting(true);
     try {
       const existingQ = query(
         collection(db, 'reports'),
-        where('cellId', '==', userData.cellId),
-        where('date', '>=', startStr)
+        where('cellId', '==', userData.cellId)
       );
       const existingSnap = await getDocs(existingQ);
-      if (!existingSnap.empty) {
+      const hasThisWeek = existingSnap.docs.some(d => d.data().date >= startStr);
+      if (hasThisWeek) {
         setError('Já existe um relatório enviado esta semana para esta célula.');
         setAlreadySentThisWeek(true);
         setSubmitting(false);

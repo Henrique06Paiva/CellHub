@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
-import { Network, Activity, Home, Users } from 'lucide-react';
+import { Network, Activity, Home, Users, AlertTriangle } from 'lucide-react';
+import { collection, query, where, getDocs, doc, getDoc, orderBy, limit } from 'firebase/firestore';
 
 const NetworkView = () => {
   const { currentUser, userData } = useAuth();
@@ -11,6 +11,7 @@ const NetworkView = () => {
   const [cells, setCells] = useState([]);
   const [leaders, setLeaders] = useState({});
   const [cellsMembersCount, setCellsMembersCount] = useState({});
+  const [lowAttendanceSummary, setLowAttendanceSummary] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,6 +55,41 @@ const NetworkView = () => {
           }
           setLeaders(lMap);
           setCellsMembersCount(cMap);
+
+          // Calculate low attendance summary for the network
+          const lowAttSum = {};
+          const reportsQ = query(
+            collection(db, 'reports'),
+            where('networkId', '==', networkData.id),
+            orderBy('date', 'desc'),
+            limit(100) // Get recent reports to analyze
+          );
+          const reportsSnap = await getDocs(reportsQ);
+          const reports = reportsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+          for (const cell of loadedCells) {
+            const cellReports = reports.filter(r => r.cellId === cell.id).slice(0, 4);
+            if (cellReports.length === 0) continue;
+
+            const memQ = query(collection(db, 'users'), where('cellId', '==', cell.id));
+            const memSnap = await getDocs(memQ);
+            let countLow = 0;
+
+            for (const memberDoc of memSnap.docs) {
+              const memberId = memberDoc.id;
+              const attendedCount = cellReports.filter(r => 
+                r.members?.some(m => m.uid === memberId && m.present)
+              ).length;
+              const pct = Math.round((attendedCount / cellReports.length) * 100);
+              if (pct < 50) {
+                countLow++;
+              }
+            }
+            if (countLow > 0) {
+              lowAttSum[cell.id] = { cellName: cell.name, count: countLow };
+            }
+          }
+          setLowAttendanceSummary(lowAttSum);
         }
       } catch (err) {
         console.error("Erro ao carregar rede:", err);
@@ -109,6 +145,47 @@ const NetworkView = () => {
           </div>
         </div>
       </div>
+
+      {/* Low Attendance Summary Alert */}
+      {Object.keys(lowAttendanceSummary).length > 0 && (
+        <div style={{ 
+          background: 'rgba(239, 68, 68, 0.05)',
+          border: '1px solid rgba(239, 68, 68, 0.2)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          marginBottom: '2.5rem',
+          display: 'flex',
+          gap: '1.25rem',
+          alignItems: 'flex-start'
+        }}>
+          <div style={{ background: 'rgba(239, 68, 68, 0.15)', padding: '0.75rem', borderRadius: '10px', color: 'var(--danger-color)' }}>
+            <AlertTriangle size={28} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-main)' }}>Alertas de Baixa Frequência na Rede</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Identificamos membros com menos de 50% de presença nas seguintes células. Recomenda-se acompanhamento com os líderes:
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+              {Object.entries(lowAttendanceSummary).map(([cellId, data]) => (
+                <div key={cellId} style={{ 
+                  background: 'var(--bg-color)', 
+                  border: '1px solid var(--border-color)', 
+                  padding: '0.5rem 1rem', 
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.6rem'
+                }}>
+                  <span style={{ fontWeight: '700', color: 'var(--primary-light)' }}>{data.cellName}</span>
+                  <div style={{ width: '1px', height: '14px', background: 'var(--border-color)' }} />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--danger-color)', fontWeight: '600' }}>{data.count} membro{data.count !== 1 ? 's' : ''} em risco</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="glass-panel" style={{ padding: '1.5rem' }}>
         <h2 style={{ marginBottom: '1.5rem' }}>Células da Rede</h2>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Phone, Calendar, Edit2, Shield, MapPin, Hash } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Calendar, Edit2, Shield, MapPin, Hash, Activity } from 'lucide-react';
 
 const UserDetails = () => {
   const { id } = useParams();
@@ -10,12 +10,50 @@ const UserDetails = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [attendance, setAttendance] = useState({ 4: 0, 8: 0, 12: 0, counts: { 4: 0, 8: 0, 12: 0 }, totals: { 4: 0, 8: 0, 12: 0 } });
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const userDoc = await getDoc(doc(db, 'users', id));
         if (userDoc.exists()) {
-          setUser({ id: userDoc.id, ...userDoc.data() });
+          const userData = { id: userDoc.id, ...userDoc.data() };
+          setUser(userData);
+          
+          // Fetch reports for attendance history if user has a cell
+          if (userData.cellId) {
+            const reportsQ = query(
+              collection(db, 'reports'),
+              where('cellId', '==', userData.cellId),
+              orderBy('date', 'desc'),
+              limit(12)
+            );
+            const reportsSnap = await getDocs(reportsQ);
+            const reports = reportsSnap.docs.map(d => d.data());
+            
+            const calcPresence = (numWeeks) => {
+              const relevantReports = reports.slice(0, numWeeks);
+              if (relevantReports.length === 0) return { pct: 0, count: 0, total: 0 };
+              const presentCount = relevantReports.filter(r => 
+                r.members?.some(m => m.uid === id && m.present)
+              ).length;
+              return {
+                pct: Math.round((presentCount / relevantReports.length) * 100),
+                count: presentCount,
+                total: relevantReports.length
+              };
+            };
+
+            const res4 = calcPresence(4);
+            const res8 = calcPresence(8);
+            const res12 = calcPresence(12);
+
+            setAttendance({
+              4: res4.pct, 8: res8.pct, 12: res12.pct,
+              counts: { 4: res4.count, 8: res8.count, 12: res12.count },
+              totals: { 4: res4.total, 8: res8.total, 12: res12.total }
+            });
+          }
         }
       } catch (err) {
         console.error("Erro ao carregar usuário:", err);
@@ -169,6 +207,35 @@ const UserDetails = () => {
                 </div>
               </div>
             </div>
+
+            {user.cellId && (
+              <div>
+                <h4 style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Activity size={14} /> Histórico de Presença
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {[4, 8, 12].map(period => (
+                    <div key={period}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
+                        <span style={{ color: 'var(--text-muted)', fontWeight: '500' }}>Últimas {period} semanas</span>
+                        <span style={{ fontWeight: '700', color: attendance[period] >= 70 ? 'var(--success-color)' : attendance[period] >= 40 ? '#f59e0b' : 'var(--danger-color)' }}>
+                          {attendance[period]}% ({attendance.counts[period]}/{attendance.totals[period]})
+                        </span>
+                      </div>
+                      <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ 
+                          height: '100%', 
+                          width: `${attendance[period]}%`, 
+                          background: attendance[period] >= 70 ? 'var(--success-color)' : attendance[period] >= 40 ? '#f59e0b' : 'var(--danger-color)',
+                          boxShadow: `0 0 10px ${attendance[period] >= 70 ? 'rgba(16, 185, 129, 0.3)' : attendance[period] >= 40 ? 'rgba(245, 158, 11, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                          transition: 'width 0.5s ease-out'
+                        }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
         </div>

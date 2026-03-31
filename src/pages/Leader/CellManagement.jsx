@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { Users, FileText, ArrowRight } from 'lucide-react';
+import { Users, FileText, ArrowRight, AlertTriangle, UserMinus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 
 const CellManagement = () => {
   const { currentUser, userData } = useAuth();
@@ -12,6 +12,7 @@ const CellManagement = () => {
   const [myCell, setMyCell] = useState(null);
   const [members, setMembers] = useState([]);
   const [reportCount, setReportCount] = useState(0);
+  const [lowAttendanceMembers, setLowAttendanceMembers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,10 +29,35 @@ const CellManagement = () => {
         const memSnap = await getDocs(memQ);
         setMembers(memSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         
-        // Count reports for this cell
-        const repQ = query(collection(db, 'reports'), where('cellId', '==', userData.cellId));
+        // Count reports for this cell and calculate attendance
+        const repQ = query(
+          collection(db, 'reports'), 
+          where('cellId', '==', userData.cellId),
+          orderBy('date', 'desc'),
+          limit(4)
+        );
         const repSnap = await getDocs(repQ);
-        setReportCount(repSnap.size);
+        setReportCount(repSnap.size); // This is size from all reports ideally, but for display we use total count below or fetch full size if needed.
+        
+        // Actually we need total count for the display, so let's do a separate count for total
+        const totalRepSnap = await getDocs(query(collection(db, 'reports'), where('cellId', '==', userData.cellId)));
+        setReportCount(totalRepSnap.size);
+
+        const lastReports = repSnap.docs.map(d => d.data());
+        
+        if (lastReports.length > 0) {
+          const lowAtt = [];
+          for (const member of memSnap.docs.map(d => ({ id: d.id, ...d.data() }))) {
+            const attendedCount = lastReports.filter(r => 
+              r.members?.some(m => m.uid === member.id && m.present)
+            ).length;
+            const pct = Math.round((attendedCount / lastReports.length) * 100);
+            if (pct < 50) {
+              lowAtt.push({ ...member, pct, count: attendedCount, total: lastReports.length });
+            }
+          }
+          setLowAttendanceMembers(lowAtt);
+        }
         
       } catch (err) {
         console.error("Erro ao carregar célula:", err);
@@ -54,6 +80,51 @@ const CellManagement = () => {
 
       {/* Quick Actions */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+        
+        {/* Low Attendance Alert */}
+        {lowAttendanceMembers.length > 0 && (
+          <div style={{ 
+            gridColumn: '1 / -1',
+            background: 'rgba(239, 68, 68, 0.05)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            borderRadius: '12px',
+            padding: '1.25rem',
+            display: 'flex',
+            gap: '1rem',
+            alignItems: 'flex-start'
+          }}>
+            <div style={{ background: 'rgba(239, 68, 68, 0.15)', padding: '0.6rem', borderRadius: '8px', color: 'var(--danger-color)' }}>
+              <AlertTriangle size={24} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: '700', color: 'var(--text-main)', fontSize: '1rem', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                Atenção Pastoral Necessária
+                <span style={{ fontSize: '0.75rem', padding: '0.15rem 0.5rem', background: 'rgba(239, 68, 68, 0.15)', borderRadius: '999px', color: 'var(--danger-color)' }}>
+                  {lowAttendanceMembers.length} membro{lowAttendanceMembers.length !== 1 ? 's' : ''} em risco
+                </span>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 1rem' }}>
+                Os seguintes membros tiveram menos de 50% de presença nos últimos 4 encontros. Vale uma ligação ou visita:
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {lowAttendanceMembers.map(m => (
+                  <div key={m.id} onClick={() => navigate(`/users/${m.id}`)} style={{ 
+                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                    padding: '0.35rem 0.75rem', background: 'var(--bg-color)', 
+                    border: '1px solid var(--border-color)', borderRadius: '6px',
+                    fontSize: '0.8rem', fontWeight: '600'
+                  }}>
+                    <UserMinus size={14} color="var(--danger-color)" />
+                    <span style={{ color: 'var(--text-main)' }}>{m.name}</span>
+                    <span style={{ color: 'var(--danger-color)', marginLeft: '0.2rem' }}>{m.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         <button
           onClick={() => navigate('/reports/new')}
           style={{
