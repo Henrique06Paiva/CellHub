@@ -130,7 +130,7 @@ const ReportDetails = () => {
         <div id="pdf-header" className="pdf-only" style={{ display: 'none', marginBottom: '1rem', borderBottom: '2px solid var(--primary-color)', paddingBottom: '1rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <img src="/nexo-logo.jpeg" alt="Logo" style={{ width: '50px', height: '50px', borderRadius: '8px' }} />
+              <img src="/nexo-logo.jpeg" alt="Logo" crossOrigin="anonymous" style={{ width: '50px', height: '50px', borderRadius: '8px' }} />
               <div>
                 <h2 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--primary-color)' }}>Nexo-Hub</h2>
                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gestão Inteligente de Células</p>
@@ -263,6 +263,7 @@ const ReportDetails = () => {
               <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                 <img
                   src={report.photoURL}
+                  crossOrigin="anonymous"
                   alt="Foto do encontro da célula"
                   style={{ width: '100%', maxHeight: '400px', objectFit: 'cover', display: 'block' }}
                 />

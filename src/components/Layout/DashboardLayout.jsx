@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Navigate, NavLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogOut, UserCircle2, Home, ShieldCheck, Network, Users as UsersIcon, PanelLeftClose, Menu, ChevronDown, FileText, Calendar, User } from 'lucide-react';
+import { LogOut, UserCircle2, Home, ShieldCheck, Network, Users as UsersIcon, PanelLeftClose, Menu, ChevronDown, FileText, Calendar, User, Globe } from 'lucide-react';
 import { SeedDevTool } from '../SeedDevTool';
 
 const DashboardLayout = () => {
@@ -94,49 +94,75 @@ const DashboardLayout = () => {
              {isSidebarOpen ? 'Painel Geral' : '•••'}
            </div>
 
-           {(['membro', 'lider', 'leader'].includes(userData?.role?.toLowerCase())) && (
-             <NavLink to="/my-cell" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Minha Célula">
-               <Home size={20} style={{ flexShrink: 0 }} />
-               {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Minha Célula</span>}
-             </NavLink>
-           )}
-
-           {(['lider', 'leader', 'discipulador', 'root'].includes(userData?.role?.toLowerCase())) && (
-             <div style={{ marginTop: '0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-
-               {/* Gestão de Células */}
-               <NavLink to="/manage" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Células">
-                 <ShieldCheck size={20} style={{ flexShrink: 0 }} />
-                 {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Células</span>}
-               </NavLink>
-
-               {/* Supervisão Global */}
-               {('discipulador' === userData?.role?.toLowerCase() || 'root' === userData?.role?.toLowerCase()) && (
-                 <NavLink to="/network" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Visão da Rede">
-                   <Network size={20} style={{ flexShrink: 0 }} />
-                   {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Visão da Rede</span>}
-                 </NavLink>
-               )}
-
-               {/* Gestão de Usuários */}
-               {['root', 'discipulador', 'lider', 'leader'].includes(userData?.role?.toLowerCase()) && (
-                 <NavLink to="/users" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Usuários">
-                   <UsersIcon size={20} style={{ flexShrink: 0 }} />
-                   {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Usuários</span>}
-                 </NavLink>
-               )}
-               
-               {/* Gestão de Relatórios */}
-               <NavLink to="/reports" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Relatórios">
-                 <FileText size={20} style={{ flexShrink: 0 }} />
-                 {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Relatórios</span>}
-               </NavLink>
-               <button className="nav-item" disabled style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0', opacity: 0.35, cursor: 'not-allowed', background: 'transparent', border: 'none', color: 'var(--text-muted)', width: '100%' }} title="Gestão de Eventos (Em breve)">
-                 <Calendar size={20} style={{ flexShrink: 0 }} />
-                 {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Eventos</span>}
-               </button>
+           {/* PAINEL ADMIN (ROOT ONLY) */}
+           {userData?.role?.toLowerCase() === 'root' && (
+             <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.5rem', paddingLeft: isSidebarOpen ? '0.5rem' : '0' }}>Admin</div>
+                <NavLink to="/admin/networks" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Redes">
+                  <Globe size={20} style={{ flexShrink: 0 }} />
+                  {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Redes</span>}
+                </NavLink>
+                <NavLink to="/admin/cells" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Células">
+                  <ShieldCheck size={20} style={{ flexShrink: 0 }} />
+                  {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Células</span>}
+                </NavLink>
              </div>
            )}
+
+           {/* PAINEL DISCIPULADOR */}
+           {userData?.role?.toLowerCase() === 'discipulador' && (
+             <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.5rem', paddingLeft: isSidebarOpen ? '0.5rem' : '0' }}>Supervisão</div>
+                <NavLink to="/admin/cells" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Células">
+                  <ShieldCheck size={20} style={{ flexShrink: 0 }} />
+                  {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Células</span>}
+                </NavLink>
+                <NavLink to="/network" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Visão da Rede">
+                  <Network size={20} style={{ flexShrink: 0 }} />
+                  {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Visão da Rede</span>}
+                </NavLink>
+             </div>
+           )}
+
+           {/* PAINEL LÍDER / MEMBRO */}
+           {(['lider', 'leader', 'membro', 'member'].includes(userData?.role?.toLowerCase())) && (
+             <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.5rem', paddingLeft: isSidebarOpen ? '0.5rem' : '0' }}>Operacional</div>
+                <NavLink to="/my-cell" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Minha Célula">
+                  <Home size={20} style={{ flexShrink: 0 }} />
+                  {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Minha Célula</span>}
+                </NavLink>
+                
+                {['lider', 'leader'].includes(userData?.role?.toLowerCase()) && (
+                  <NavLink to="/my-cell/manage" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Membros">
+                    <ShieldCheck size={20} style={{ flexShrink: 0 }} />
+                    {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Membros</span>}
+                  </NavLink>
+                )}
+             </div>
+           )}
+
+           {/* FERRAMENTAS COMUNS */}
+           <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: isSidebarOpen ? '0.5rem' : '0' }}>Sistema</div>
+              
+              {['root', 'discipulador', 'lider', 'leader'].includes(userData?.role?.toLowerCase()) && (
+                <NavLink to="/users" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Usuários">
+                  <UsersIcon size={20} style={{ flexShrink: 0 }} />
+                  {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Usuários</span>}
+                </NavLink>
+              )}
+              
+              <NavLink to="/reports" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Relatórios">
+                <FileText size={20} style={{ flexShrink: 0 }} />
+                {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Relatórios</span>}
+              </NavLink>
+
+              <button className="nav-item" disabled style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0', opacity: 0.35, cursor: 'not-allowed', background: 'transparent', border: 'none', color: 'var(--text-muted)', width: '100%' }} title="Gestão de Eventos (Em breve)">
+                <Calendar size={20} style={{ flexShrink: 0 }} />
+                {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Eventos</span>}
+              </button>
+           </div>
         </div>
       </nav>
 

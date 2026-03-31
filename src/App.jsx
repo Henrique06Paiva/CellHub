@@ -18,6 +18,16 @@ const ReportsList = React.lazy(() => import('./pages/Reports/ReportsList'));
 const ReportForm = React.lazy(() => import('./pages/Reports/ReportForm'));
 const ReportDetails = React.lazy(() => import('./pages/Reports/ReportDetails'));
 
+// Admin / Management Pages
+const NetworkManagement = React.lazy(() => import('./pages/Admin/NetworkManagement'));
+const NetworkForm = React.lazy(() => import('./pages/Admin/NetworkForm'));
+const CellAdminManagement = React.lazy(() => import('./pages/Admin/CellManagement'));
+const CellAdminForm = React.lazy(() => import('./pages/Admin/CellForm'));
+const CellAdminDetails = React.lazy(() => import('./pages/Admin/CellDetails'));
+
+// Root Setup (Temporary)
+import RootSetup from './components/Admin/RootSetup';
+
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { currentUser, userData } = useAuth();
   
@@ -44,15 +54,16 @@ const DashboardRouter = () => {
     return <Navigate to="/login" replace />;
   }
 
-  if (userData.role === 'root') return <Navigate to="/users" replace />;
-  if (userData.role === 'discipulador') return <Navigate to="/network" replace />;
-  if (userData.role === 'lider') return <Navigate to="/manage" replace />;
+  if (userData.role === 'root') return <Navigate to="/admin/networks" replace />;
+  if (userData.role === 'discipulador') return <Navigate to="/admin/cells" replace />;
+  if (userData.role === 'lider') return <Navigate to="/my-cell/manage" replace />;
   return <Navigate to="/my-cell" replace />;
 };
 
 function App() {
   return (
     <AuthProvider>
+      <RootSetup />
       <BrowserRouter>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
@@ -67,7 +78,46 @@ function App() {
                 </ProtectedRoute>
               } />
               
-              <Route path="/manage" element={
+              {/* Admin: Networks */}
+              <Route path="/admin/networks" element={
+                <ProtectedRoute allowedRoles={['root']}>
+                  <NetworkManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/networks/new" element={
+                <ProtectedRoute allowedRoles={['root']}>
+                  <NetworkForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/networks/:id/edit" element={
+                <ProtectedRoute allowedRoles={['root']}>
+                  <NetworkForm />
+                </ProtectedRoute>
+              } />
+
+              {/* Admin: Cells */}
+              <Route path="/admin/cells" element={
+                <ProtectedRoute allowedRoles={['root', 'discipulador']}>
+                  <CellAdminManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/cells/new" element={
+                <ProtectedRoute allowedRoles={['root', 'discipulador']}>
+                  <CellAdminForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/cells/:id/edit" element={
+                <ProtectedRoute allowedRoles={['root', 'discipulador']}>
+                  <CellAdminForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/cells/:id" element={
+                <ProtectedRoute allowedRoles={['root', 'discipulador']}>
+                  <CellAdminDetails />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/my-cell/manage" element={
                 <ProtectedRoute allowedRoles={['lider']}>
                   <CellManagement />
                 </ProtectedRoute>

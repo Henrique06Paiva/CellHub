@@ -67,9 +67,27 @@ const ReportsList = () => {
   };
 
   const filteredReports = reports.filter(r => {
-    const matchesSearch = r.cellName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          r.leaderName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          r.date?.includes(searchTerm);
+    // Smart Search: Support Brazilian date formats like "20/03" or "20/03/2026"
+    const normalizedSearch = searchTerm?.toLowerCase().trim();
+    let matchesSearch = r.cellName?.toLowerCase().includes(normalizedSearch) ||
+                        r.leaderName?.toLowerCase().includes(normalizedSearch);
+
+    // If it looks like a date search (XX/XX)
+    if (normalizedSearch.includes('/')) {
+      const parts = normalizedSearch.split('/');
+      const day = parts[0].padStart(2, '0');
+      const month = parts[1].padStart(2, '0');
+      const year = parts[2] || '2026'; // Default to current year for search
+      
+      const isoDateSearch = `${year}-${month}-${day}`;
+      if (r.date?.includes(isoDateSearch)) matchesSearch = true;
+      // Also check partial date if only day/month provided
+      if (parts.length === 2 && r.date?.includes(`-${month}-${day}`)) matchesSearch = true;
+    } else {
+      // Standard string check
+      if (r.date?.includes(normalizedSearch)) matchesSearch = true;
+    }
+    
     const matchesCell = cellFilter === 'Todas' || r.cellName === cellFilter;
     
     let matchesDate = true;
