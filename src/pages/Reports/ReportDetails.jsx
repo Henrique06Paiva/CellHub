@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
 import { useParams, useNavigate } from 'react-router-dom';
+import { fetchReportById } from '../../services/reportService';
 import { ArrowLeft, CalendarDays, Users, UserPlus, CheckCircle, XCircle, FileText, Camera, Download, Printer } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -53,11 +52,11 @@ const ReportDetails = () => {
   };
 
   useEffect(() => {
-    const fetchReport = async () => {
+    const loadReportDetails = async () => {
       try {
-        const reportDoc = await getDoc(doc(db, 'reports', id));
-        if (reportDoc.exists()) {
-          setReport({ id: reportDoc.id, ...reportDoc.data() });
+        const data = await fetchReportById(id);
+        if (data) {
+          setReport(data);
         }
       } catch (err) {
         console.error('Erro ao carregar relatório:', err);
@@ -65,7 +64,7 @@ const ReportDetails = () => {
         setLoading(false);
       }
     };
-    fetchReport();
+    loadReportDetails();
   }, [id]);
 
   if (loading) {

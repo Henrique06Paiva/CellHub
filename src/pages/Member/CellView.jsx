@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { db } from '../../lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { fetchCellById } from '../../services/cellService';
+import { fetchNetworkById } from '../../services/networkService';
+import { fetchUserById, fetchUsers } from '../../services/userService';
 import { MapPin, Users as UsersIcon } from 'lucide-react';
 
 const CellView = () => {
@@ -14,31 +15,29 @@ const CellView = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadCellData = async () => {
       if (!userData?.cellId) {
         setLoading(false);
         return;
       }
       try {
-        const cellDoc = await getDoc(doc(db, 'cells', userData.cellId));
-        if (cellDoc.exists()) {
-          const cellData = { id: cellDoc.id, ...cellDoc.data() };
+        const cellData = await fetchCellById(userData.cellId);
+        if (cellData) {
           setMyCell(cellData);
           
           if (cellData.leaderId) {
-            const leaderDoc = await getDoc(doc(db, 'users', cellData.leaderId));
-            if (leaderDoc.exists()) setLeader({ id: leaderDoc.id, ...leaderDoc.data() });
+            const leaderData = await fetchUserById(cellData.leaderId);
+            if (leaderData) setLeader(leaderData);
           }
         }
 
         if (userData?.networkId) {
-          const networkDoc = await getDoc(doc(db, 'networks', userData.networkId));
-          if (networkDoc.exists()) setMyNetwork({ id: networkDoc.id, ...networkDoc.data() });
+          const networkData = await fetchNetworkById(userData.networkId);
+          if (networkData) setMyNetwork(networkData);
         }
 
-        const membersQuery = query(collection(db, 'users'), where('cellId', '==', userData.cellId));
-        const membersSnap = await getDocs(membersQuery);
-        setMembers(membersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const membersList = await fetchUsers({ cellId: userData.cellId });
+        setMembers(membersList);
 
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
@@ -46,7 +45,7 @@ const CellView = () => {
         setLoading(false);
       }
     };
-    fetchData();
+    if (userData) loadCellData();
   }, [userData]);
 
   if (loading) return <div style={{ padding: '2rem' }}>Carregando dados da célula...</div>;

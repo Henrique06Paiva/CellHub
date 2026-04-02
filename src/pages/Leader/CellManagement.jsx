@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { db } from '../../lib/firebase';
+import { fetchCellById } from '../../services/cellService';
+import { fetchUsers } from '../../services/userService';
+import { fetchReports } from '../../services/reportService';
 import { Users, FileText, ArrowRight, AlertTriangle, UserMinus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 
 const CellManagement = () => {
   const { currentUser, userData } = useAuth();
@@ -16,38 +17,26 @@ const CellManagement = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadLeadershipData = async () => {
       if (!userData?.cellId) {
         setLoading(false);
         return;
       }
       try {
-        const cellDoc = await getDoc(doc(db, 'cells', userData.cellId));
-        if (cellDoc.exists()) setMyCell({ id: cellDoc.id, ...cellDoc.data() });
+        const cellData = await fetchCellById(userData.cellId);
+        if (cellData) setMyCell(cellData);
 
-        const memQ = query(collection(db, 'users'), where('cellId', '==', userData.cellId));
-        const memSnap = await getDocs(memQ);
-        setMembers(memSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const membersList = await fetchUsers({ cellId: userData.cellId });
+        setMembers(membersList);
         
-        // Count reports for this cell and calculate attendance
-        const repQ = query(
-          collection(db, 'reports'), 
-          where('cellId', '==', userData.cellId),
-          orderBy('date', 'desc'),
-          limit(4)
-        );
-        const repSnap = await getDocs(repQ);
-        setReportCount(repSnap.size); // This is size from all reports ideally, but for display we use total count below or fetch full size if needed.
-        
-        // Actually we need total count for the display, so let's do a separate count for total
-        const totalRepSnap = await getDocs(query(collection(db, 'reports'), where('cellId', '==', userData.cellId)));
-        setReportCount(totalRepSnap.size);
+        const cellReports = await fetchReports(userData, { cellId: userData.cellId });
+        setReportCount(cellReports.length);
 
-        const lastReports = repSnap.docs.map(d => d.data());
+        const lastReports = cellReports.slice(0, 4);
         
         if (lastReports.length > 0) {
           const lowAtt = [];
-          for (const member of memSnap.docs.map(d => ({ id: d.id, ...d.data() }))) {
+          for (const member of membersList) {
             const attendedCount = lastReports.filter(r => 
               r.members?.some(m => m.uid === member.id && m.present)
             ).length;
@@ -65,7 +54,7 @@ const CellManagement = () => {
         setLoading(false);
       }
     };
-    fetchData();
+    if (userData) loadLeadershipData();
   }, [userData]);
 
   if (loading) return <div style={{ padding: '2rem' }}>Carregando dados da liderança da célula...</div>;

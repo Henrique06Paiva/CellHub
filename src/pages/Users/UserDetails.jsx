@@ -1,38 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { fetchUserById } from '../../services/userService';
+import { fetchReports } from '../../services/reportService';
 import { ArrowLeft, User, Mail, Phone, Calendar, Edit2, Shield, MapPin, Hash, Activity } from 'lucide-react';
 
 const UserDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { userData: currentAuthUser } = useAuth();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [attendance, setAttendance] = useState({ 4: 0, 8: 0, 12: 0, counts: { 4: 0, 8: 0, 12: 0 }, totals: { 4: 0, 8: 0, 12: 0 } });
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const loadUserDetails = async () => {
       try {
-        const userDoc = await getDoc(doc(db, 'users', id));
-        if (userDoc.exists()) {
-          const userData = { id: userDoc.id, ...userDoc.data() };
-          setUser(userData);
+        const data = await fetchUserById(id);
+        if (data) {
+          setUser(data);
           
           // Fetch reports for attendance history if user has a cell
-          if (userData.cellId) {
-            const reportsQ = query(
-              collection(db, 'reports'),
-              where('cellId', '==', userData.cellId),
-              orderBy('date', 'desc'),
-              limit(12)
-            );
-            const reportsSnap = await getDocs(reportsQ);
-            const reports = reportsSnap.docs.map(d => d.data());
+          if (data.cellId && currentAuthUser) {
+            const reports = await fetchReports(currentAuthUser, { cellId: data.cellId });
+            const recentReports = reports.slice(0, 12);
             
             const calcPresence = (numWeeks) => {
-              const relevantReports = reports.slice(0, numWeeks);
+              const relevantReports = recentReports.slice(0, numWeeks);
               if (relevantReports.length === 0) return { pct: 0, count: 0, total: 0 };
               const presentCount = relevantReports.filter(r => 
                 r.members?.some(m => m.uid === id && m.present)
@@ -61,8 +56,8 @@ const UserDetails = () => {
         setLoading(false);
       }
     };
-    fetchUser();
-  }, [id]);
+    if (currentAuthUser) loadUserDetails();
+  }, [id, currentAuthUser]);
 
   if (loading) {
     return (

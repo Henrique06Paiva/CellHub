@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGlobal } from '../../contexts/GlobalContext';
 import { useNavigate } from 'react-router-dom';
+import { fetchCellById } from '../../services/cellService';
+import { fetchUsers } from '../../services/userService';
+import { fetchReports, saveReport } from '../../services/reportService';
+import { storage } from '../../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ArrowLeft, CalendarDays, Users, UserPlus, Camera, FileText, CheckCircle2, X, ImageIcon, Loader2 } from 'lucide-react';
 
 const DAYS_OF_WEEK = [
@@ -16,16 +19,13 @@ const DAYS_OF_WEEK = [
   { value: 6, label: 'Sábado' },
 ];
 
-// Inline error message component
-const FieldError = ({ message }) => message ? (
-  <span style={{ color: 'var(--danger-color)', fontSize: '0.75rem', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.25rem', animation: 'fadeIn 0.2s ease' }}>
-    {message}
-  </span>
-) : null;
+const FieldError = ({ message }) => {
+  if (!message) return null;
+  return <span style={{ color: 'var(--danger-color)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>{message}</span>;
+};
 
-// Image compression utility
-const compressImage = (file, maxWidth = 1200, quality = 0.7) => {
-  return new Promise((resolve, reject) => {
+const compressImage = async (file) => {
+  return new Promise((resolve) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (event) => {
@@ -33,45 +33,42 @@ const compressImage = (file, maxWidth = 1200, quality = 0.7) => {
       img.src = event.target.result;
       img.onload = () => {
         const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
         let width = img.width;
         let height = img.height;
 
-        if (width > maxWidth) {
-          height = (maxWidth / width) * height;
-          width = maxWidth;
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
         }
-
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-
         canvas.toBlob((blob) => {
-          if (blob) {
-            const compressedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
-              lastModified: Date.now(),
-            });
-            resolve(compressedFile);
-          } else {
-            reject(new Error('Compression failed'));
-          }
-        }, 'image/jpeg', quality);
+          resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+        }, 'image/jpeg', 0.7);
       };
     };
-    reader.onerror = (error) => reject(error);
   });
 };
 
 const ReportForm = () => {
   const navigate = useNavigate();
   const { currentUser, userData } = useAuth();
+  const { showLoader, hideLoader, notify } = useGlobal();
   const fileInputRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   // Cell & Members
   const [cellData, setCellData] = useState(null);
@@ -80,7 +77,7 @@ const ReportForm = () => {
   // Form fields
   const [meetingDay, setMeetingDay] = useState('');
   const [presentIds, setPresentIds] = useState([]);
-  const [memberObservations, setMemberObservations] = useState({}); // { uid: string }
+  const [memberObservations, setMemberObservations] = useState({});
   const [visitors, setVisitors] = useState('');
   const [notes, setNotes] = useState('');
   const [photo, setPhoto] = useState(null);
@@ -90,115 +87,81 @@ const ReportForm = () => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [alreadySentThisWeek, setAlreadySentThisWeek] = useState(false);
 
-  // Load cell and members
   useEffect(() => {
-    const fetchData = async () => {
+    const loadInitialData = async () => {
       if (!userData?.cellId) {
         setLoading(false);
         return;
       }
 
-      // 1. Try to load members from cache first for instant UI
-      const cacheKey = `members_${userData.cellId}`;
-      const cachedMembers = sessionStorage.getItem(cacheKey);
-      if (cachedMembers) {
-        setMembers(JSON.parse(cachedMembers));
-        // We still fetch from Firestore to ensure data is fresh but UI is already usable
-      }
-
       try {
-        const cellQ = query(collection(db, 'cells'), where('__name__', '==', userData.cellId));
-        const cellSnap = await getDocs(cellQ);
-        if (!cellSnap.empty) {
-          setCellData({ id: cellSnap.docs[0].id, ...cellSnap.docs[0].data() });
-        }
-
-        const memQ = query(collection(db, 'users'), where('cellId', '==', userData.cellId));
-        const memSnap = await getDocs(memQ);
-        const membersList = memSnap.docs.map(d => ({ uid: d.id, name: d.data().name, email: d.data().email }));
+        const [cData, usersData] = await Promise.all([
+          fetchCellById(userData.cellId),
+          fetchUsers({ cellId: userData.cellId })
+        ]);
         
-        setMembers(membersList);
-        sessionStorage.setItem(cacheKey, JSON.stringify(membersList));
-      } catch (err) {
-        console.error('Erro ao carregar dados:', err);
-        if (!cachedMembers) {
-          setError('Erro ao carregar dados da célula.');
-        }
-      }
-
-      // Check if report already sent this week
-      try {
+        setCellData(cData);
+        // Filtrar apenas membros (excluir o líder do relatório de presença se necessário, 
+        // mas aqui mantemos todos os vinculados à célula exceto talvez o próprio user se quiser)
+        setMembers(usersData.filter(u => u.uid !== currentUser.uid));
+        
+        // Verificar se já enviou esta semana
         const now = new Date();
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
-        
-        // Use local date string instead of ISO to avoid timezone shifts
         const y = startOfWeek.getFullYear();
         const m = String(startOfWeek.getMonth() + 1).padStart(2, '0');
         const d = String(startOfWeek.getDate()).padStart(2, '0');
         const startStr = `${y}-${m}-${d}`;
 
-        // Fetch all reports for the cell and filter in memory to avoid "Building Index" errors
-        const repQ = query(
-          collection(db, 'reports'),
-          where('cellId', '==', userData.cellId)
-        );
-        const repSnap = await getDocs(repQ);
-        // Compare dates safely using noon for the report and the local week start string
-        const hasThisWeek = repSnap.docs.some(d => d.data().date >= startStr);
-        if (hasThisWeek) {
-          setAlreadySentThisWeek(true);
-        }
+        const existingReports = await fetchReports(userData, { cellId: userData.cellId });
+        const hasThisWeek = existingReports.some(r => r.date >= startStr);
+        if (hasThisWeek) setAlreadySentThisWeek(true);
+
       } catch (err) {
-        console.warn('Não foi possível verificar relatório semanal:', err);
+        console.error(err);
+        notify('error', 'Erro ao carregar dados da célula.');
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
-    fetchData();
-  }, [userData]);
 
-  const clearFieldError = (field) => {
-    setFieldErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
-  };
+    if (userData) loadInitialData();
+  }, [userData, currentUser, notify]);
 
   const toggleMember = (uid) => {
-    setPresentIds(prev =>
+    setPresentIds(prev => 
       prev.includes(uid) ? prev.filter(id => id !== uid) : [...prev, uid]
     );
+  };
+
+  const selectAll = () => {
+    if (presentIds.length === members.length) setPresentIds([]);
+    else setPresentIds(members.map(m => m.uid));
   };
 
   const handleObservationChange = (uid, val) => {
     setMemberObservations(prev => ({ ...prev, [uid]: val }));
   };
 
-  const selectAll = () => {
-    if (presentIds.length === members.length) {
-      setPresentIds([]);
-    } else {
-      setPresentIds(members.map(m => m.uid));
-    }
-  };
-
   const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Por favor, selecione apenas arquivos de imagem.');
+    if (file.size > 5 * 1024 * 1024) {
+      notify('error', 'A imagem deve ter no máximo 5MB.');
       return;
     }
 
+    showLoader('Processando imagem...');
     try {
-      // Compress image before setting it to state
       const compressed = await compressImage(file);
       setPhoto(compressed);
       setPhotoPreview(URL.createObjectURL(compressed));
-      clearFieldError('photo');
-      setError('');
     } catch (err) {
-      console.error('Error compressing image:', err);
-      setError('Erro ao processar imagem. Tente outra.');
+      notify('error', 'Erro ao processar imagem.');
+    } finally {
+      hideLoader();
     }
   };
 
@@ -208,10 +171,23 @@ const ReportForm = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const clearFieldError = (field) => {
+    setFieldErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+  };
+
+  const errBorder = (field) => fieldErrors[field] ? 'var(--danger-color)' : 'var(--border-color)';
+
+  const SubmittingOverlay = () => submitting ? (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+        <div style={{ background: 'var(--surface-color)', padding: '2rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
+            <Loader2 className="animate-spin" size={32} color="var(--primary-color)" />
+            <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>Enviando Relatório...</span>
+        </div>
+    </div>
+  ) : null;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
 
     // Field-level validation
     const errors = {};
@@ -222,35 +198,32 @@ const ReportForm = () => {
 
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
-      setError('Preencha todos os campos obrigatórios.');
+      notify('error', 'Preencha todos os campos obrigatórios.');
       return;
     }
 
-    // Check weekly limit again before submitting (safe memory filter)
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
-    
-    // Use local date string instead of ISO to avoid timezone shifts
     const y = startOfWeek.getFullYear();
     const m = String(startOfWeek.getMonth() + 1).padStart(2, '0');
     const d = String(startOfWeek.getDate()).padStart(2, '0');
     const startStr = `${y}-${m}-${d}`;
 
     setSubmitting(true);
+    showLoader('Enviando relatório semanal...');
+    
     try {
-      const existingQ = query(
-        collection(db, 'reports'),
-        where('cellId', '==', userData.cellId)
-      );
-      const existingSnap = await getDocs(existingQ);
-      const hasThisWeek = existingSnap.docs.some(d => d.data().date >= startStr);
+      const existingReports = await fetchReports(userData, { cellId: userData.cellId });
+      const hasThisWeek = existingReports.some(r => r.date >= startStr);
       if (hasThisWeek) {
-        setError('Já existe um relatório enviado esta semana para esta célula.');
+        notify('error', 'Já existe um relatório enviado esta semana para esta célula.');
         setAlreadySentThisWeek(true);
+        hideLoader();
         setSubmitting(false);
         return;
       }
+
       let photoURL = '';
       if (photo) {
         const timestamp = Date.now();
@@ -261,14 +234,7 @@ const ReportForm = () => {
         photoURL = await getDownloadURL(storageRef);
       }
 
-      const membersPresence = members.map(m => ({
-        uid: m.uid,
-        name: m.name,
-        present: presentIds.includes(m.uid),
-        observation: memberObservations[m.uid] || ''
-      }));
-
-      const reportData = {
+      const reportPayload = {
         cellId: userData.cellId,
         cellName: cellData?.name || '',
         networkId: userData.networkId || null,
@@ -277,50 +243,36 @@ const ReportForm = () => {
         date: new Date().toISOString().split('T')[0],
         meetingDay: parseInt(meetingDay),
         meetingDayLabel: DAYS_OF_WEEK.find(d => d.value === parseInt(meetingDay))?.label || '',
-        members: membersPresence,
+        members: members.map(m => ({
+          uid: m.uid,
+          name: m.name,
+          present: presentIds.includes(m.uid),
+          observation: memberObservations[m.uid] || ''
+        })),
         presentCount: presentIds.length,
         absentCount: members.length - presentIds.length,
         totalMembers: members.length,
         visitors: parseInt(visitors) || 0,
         notes: notes.trim(),
-        photoURL,
-        createdAt: serverTimestamp()
+        photoURL
       };
 
-      await addDoc(collection(db, 'reports'), reportData);
+      await saveReport(null, reportPayload);
 
-      setSuccess('Relatório enviado com sucesso!');
-      setTimeout(() => navigate('/reports', { replace: true, state: { t: Date.now() } }), 1500);
+      notify('success', 'Relatório enviado com sucesso!');
+      setTimeout(() => navigate('/reports', { replace: true, state: { t: Date.now() } }), 1000);
     } catch (err) {
       console.error('Erro ao enviar relatório:', err);
-      setError('Erro ao salvar o relatório. Tente novamente.');
+      notify('error', 'Erro ao salvar o relatório. Tente novamente.');
     } finally {
+      hideLoader();
       setSubmitting(false);
     }
   };
 
-  // Error border style helper
-  const errBorder = (field) => fieldErrors[field] ? 'var(--danger-color)' : 'var(--border-color)';
-
-  // Submitting overlay
-  const SubmittingOverlay = () => submitting ? (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
-      background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem'
-    }}>
-      <div style={{ animation: 'spin 1s linear infinite' }}>
-        <Loader2 size={48} color="var(--primary-color)" />
-      </div>
-      <div style={{ textAlign: 'center' }}>
-        <h3 style={{ color: 'var(--text-main)', margin: '0 0 0.5rem', fontSize: '1.25rem', fontWeight: '700' }}>Enviando relatório...</h3>
-        <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.875rem' }}>Fazendo upload da foto e salvando dados.</p>
-      </div>
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-    </div>
-  ) : null;
-
   if (loading) {
+// ...
+
     return (
       <div style={{ height: 'calc(100vh - 5rem)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ color: 'var(--text-muted)' }}>Carregando dados da célula...</div>
@@ -360,7 +312,6 @@ const ReportForm = () => {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '3rem' }}>
-      <SubmittingOverlay />
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '2.5rem' }}>
         <button
@@ -376,16 +327,12 @@ const ReportForm = () => {
             Novo Relatório
           </h1>
           <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            {cellData.name} — Preencha o relatório semanal do encontro da célula.
+            {cellData?.name} — Preencha o relatório semanal do encontro da célula.
           </p>
         </div>
       </div>
 
       <div className="card static" style={{ padding: '2.5rem' }}>
-        {error && <div style={{ padding: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderLeft: '4px solid var(--danger-color)', color: 'var(--danger-color)', borderRadius: '4px', marginBottom: '2rem', fontSize: '0.875rem', fontWeight: '600' }}>{error}</div>}
-        {success && <div style={{ padding: '1rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderLeft: '4px solid var(--success-color)', color: 'var(--success-color)', borderRadius: '4px', marginBottom: '2rem', fontSize: '0.875rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} /> {success}</div>}
-
-        {/* Required fields hint */}
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '2rem', fontStyle: 'italic' }}>
           Campos com <span style={{ color: 'var(--danger-color)', fontWeight: '700', fontStyle: 'normal' }}>*</span> são campos obrigatórios.
         </p>

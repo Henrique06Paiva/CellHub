@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { fetchReports } from '../../services/reportService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Search, FileText, CalendarDays, UserPlus, Eye, TrendingUp, AlertTriangle, Download } from 'lucide-react';
@@ -22,23 +21,11 @@ const ReportsList = () => {
   const isLeader = role === 'lider' || role === 'leader';
   const isAdmin = role === 'discipulador' || role === 'root';
 
-  const fetchReports = useCallback(async () => {
+  const loadReports = useCallback(async () => {
     if (!userData) return;
     setLoading(true);
     try {
-      let reportsData = [];
-
-      if (role === 'root') {
-        const snap = await getDocs(query(collection(db, 'reports'), orderBy('date', 'desc')));
-        reportsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      } else if (role === 'discipulador' && userData?.networkId) {
-        const snap = await getDocs(query(collection(db, 'reports'), where('networkId', '==', userData.networkId), orderBy('date', 'desc')));
-        reportsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      } else if (isLeader && userData?.cellId) {
-        const snap = await getDocs(query(collection(db, 'reports'), where('cellId', '==', userData.cellId), orderBy('date', 'desc')));
-        reportsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      }
-
+      const reportsData = await fetchReports(userData);
       setReports(reportsData);
       const uniqueCells = [...new Set(reportsData.map(r => r.cellName).filter(Boolean))];
       setCells(uniqueCells);
@@ -47,11 +34,11 @@ const ReportsList = () => {
     } finally {
       setLoading(false);
     }
-  }, [userData, role, isLeader]);
+  }, [userData]);
 
   useEffect(() => {
-    fetchReports();
-  }, [fetchReports, location.state]);
+    loadReports();
+  }, [loadReports, location.state]);
 
   const now = new Date();
   

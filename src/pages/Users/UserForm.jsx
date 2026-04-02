@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGlobal } from '../../contexts/GlobalContext';
 import { useNavigate, useParams } from 'react-router-dom';
+import { fetchUserById, updateUser } from '../../services/userService';
+import { fetchCells } from '../../services/cellService';
 import { ArrowLeft, User, Mail, Phone, Shield, Users, MapPin, Calendar, Power, ChevronDown } from 'lucide-react';
 
 const UserForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { userData, registerUserFromAdmin } = useAuth();
+  const { showLoader, hideLoader, notify } = useGlobal();
+  
   const [loading, setLoading] = useState(false);
   const [fetchingUser, setFetchingUser] = useState(!!id);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   
   const [formData, setFormData] = useState({
@@ -22,11 +23,10 @@ const UserForm = () => {
 
   useEffect(() => {
     if (id) {
-      const fetchUser = async () => {
+      const loadUser = async () => {
         try {
-          const userDoc = await getDoc(doc(db, 'users', id));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
+          const data = await fetchUserById(id);
+          if (data) {
             setFormData({
               name: data.name || '',
               email: data.email || '',
@@ -38,53 +38,46 @@ const UserForm = () => {
               status: data.status || 'ativo'
             });
           } else {
-            setError('Usuário não encontrado.');
+            notify('error', 'Usuário não encontrado.');
           }
         } catch (err) {
-          setError('Erro ao buscar dados do usuário.');
+          notify('error', 'Erro ao buscar dados do usuário.');
         } finally {
           setFetchingUser(false);
         }
       };
-      fetchUser();
+      loadUser();
     }
-  }, [id]);
+  }, [id, notify]);
 
   useEffect(() => {
-    const fetchCells = async () => {
+    const loadCells = async () => {
       try {
-        let q;
         const currentRole = userData?.role?.toLowerCase();
-        
+        let cellsData = [];
+
         if (currentRole === 'root') {
-          q = query(collection(db, 'cells'));
+          cellsData = await fetchCells();
         } else if (currentRole === 'discipulador') {
-          q = query(collection(db, 'cells'), where('networkId', '==', userData.networkId));
+          cellsData = await fetchCells({ networkId: userData.networkId });
         } else if (currentRole === 'lider' || currentRole === 'leader') {
-          q = query(collection(db, 'cells'), where('leaderId', '==', userData.uid || userData.email)); 
           if (userData.cellId) {
-             q = query(collection(db, 'cells'));
+            const myCell = await fetchCells();
+            cellsData = myCell.filter(c => c.id === userData.cellId);
+          } else {
+            cellsData = await fetchCells();
           }
         }
 
-        if (q) {
-          const snapshot = await getDocs(q);
-          let cellsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          
-          if ((currentRole === 'lider' || currentRole === 'leader') && userData.cellId) {
-            cellsData = cellsData.filter(c => c.id === userData.cellId);
-          }
-
-          setCells(cellsData);
-          if (cellsData.length === 1) {
-            setFormData(prev => ({ ...prev, cellId: cellsData[0].id }));
-          }
+        setCells(cellsData);
+        if (cellsData.length === 1) {
+          setFormData(prev => ({ ...prev, cellId: cellsData[0].id }));
         }
       } catch (err) {
         console.error("Erro ao buscar células", err);
       }
     };
-    if (userData) fetchCells();
+    if (userData) loadCells();
   }, [userData, id]);
 
   const getAvailableRoles = () => {
@@ -103,8 +96,6 @@ const UserForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
 
     // Field-level validation
     const errors = {};
@@ -123,11 +114,13 @@ const UserForm = () => {
 
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
-      setError('Preencha todos os campos obrigatórios.');
+      notify('error', 'Preencha todos os campos obrigatórios.');
       return;
     }
 
     setLoading(true);
+    showLoader(id ? 'Atualizando usuário...' : 'Criando novo usuário...');
+    
     try {
       const selectedCell = cells.find(c => c.id === formData.cellId);
       const payload = {
@@ -137,24 +130,26 @@ const UserForm = () => {
       };
 
       if (id) {
-        await updateDoc(doc(db, 'users', id), payload);
-        setSuccess('Usuário atualizado com sucesso!');
-        setTimeout(() => navigate('/users'), 1500);
+        await updateUser(id, payload);
+        notify('success', 'Usuário atualizado com sucesso!');
+        setTimeout(() => navigate('/users'), 1000);
       } else {
         await registerUserFromAdmin(payload);
-        setSuccess('Usuário criado com sucesso! O convite de acesso foi enviado.');
-        setTimeout(() => navigate('/users'), 2000);
+        notify('success', 'Usuário criado com sucesso! O convite de acesso foi enviado.');
+        setTimeout(() => navigate('/users'), 1000);
       }
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
-        setError('Este e-mail já está em uso em outra conta.');
+        notify('error', 'Este e-mail já está em uso em outra conta.');
       } else {
-        setError('Erro ao processar: ' + err.message);
+        notify('error', 'Erro ao processar: ' + err.message);
       }
     } finally {
+      hideLoader();
       setLoading(false);
     }
   };
+
 
   if (fetchingUser) {
     return (
@@ -187,9 +182,6 @@ const UserForm = () => {
       </div>
 
       <div className="card static" style={{ padding: '2.5rem' }}>
-        {error && <div style={{ padding: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderLeft: '4px solid var(--danger-color)', color: 'var(--danger-color)', borderRadius: '4px', marginBottom: '2rem', fontSize: '0.875rem', fontWeight: '600' }}>{error}</div>}
-        {success && <div style={{ padding: '1rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderLeft: '4px solid var(--success-color)', color: 'var(--success-color)', borderRadius: '4px', marginBottom: '2rem', fontSize: '0.875rem', fontWeight: '600' }}>{success}</div>}
-
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontStyle: 'italic' }}>
           Campos com <span style={{ color: 'var(--danger-color)', fontWeight: '700', fontStyle: 'normal' }}>*</span> são campos obrigatórios.
         </p>

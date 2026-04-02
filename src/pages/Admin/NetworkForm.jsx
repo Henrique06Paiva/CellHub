@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { db, storage } from '../../lib/firebase';
-import { collection, doc, getDoc, setDoc, updateDoc, query, where, getDocs, serverTimestamp, runTransaction, orderBy } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGlobal } from '../../contexts/GlobalContext';
+import { fetchNetworkById, saveNetwork } from '../../services/networkService';
+import { fetchUsers } from '../../services/userService';
 import { ArrowLeft, Globe, Camera, User, Mail, Search, Check, ChevronDown, Loader2, Phone, Calendar } from 'lucide-react';
 
 const NetworkForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { registerUserFromAdmin } = useAuth();
+  const { showLoader, hideLoader, notify } = useGlobal();
+  
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(!!id);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
 
   const [formData, setFormData] = useState({
@@ -36,11 +36,10 @@ const NetworkForm = () => {
 
   useEffect(() => {
     if (id) {
-      const fetchNetwork = async () => {
+      const loadNetwork = async () => {
         try {
-          const docSnap = await getDoc(doc(db, 'networks', id));
-          if (docSnap.exists()) {
-            const data = docSnap.data();
+          const data = await fetchNetworkById(id);
+          if (data) {
             setFormData(prev => ({
               ...prev,
               name: data.name || '',
@@ -50,26 +49,25 @@ const NetworkForm = () => {
             setLogoPreview(data.logoURL || '');
           }
         } catch (err) {
-          setError("Erro ao carregar rede.");
+          notify('error', "Erro ao carregar rede.");
         } finally {
           setFetching(false);
         }
       };
-      fetchNetwork();
+      loadNetwork();
     }
-  }, [id]);
+  }, [id, notify]);
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const loadUsers = async () => {
       try {
-        const q = query(collection(db, 'users'), where('role', 'in', ['discipulador', 'lider', 'membro']), orderBy('name'));
-        const snap = await getDocs(q);
-        setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const usersList = await fetchUsers({ role: ['discipulador', 'lider', 'membro'] });
+        setUsers(usersList);
       } catch (err) {
         console.error(err);
       }
     };
-    fetchUsers();
+    loadUsers();
   }, []);
 
   const handleImageChange = (e) => {
@@ -108,8 +106,6 @@ const NetworkForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
 
     const errors = {};
     if (!formData.name.trim()) errors.name = 'O nome da rede é obrigatório.';
@@ -132,15 +128,15 @@ const NetworkForm = () => {
 
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
-      setError('Preencha os campos obrigatórios.');
+      notify('error', 'Preencha os campos obrigatórios.');
       return;
     }
 
     setLoading(true);
+    showLoader(id ? 'Atualizando rede...' : 'Criando nova rede...');
 
     try {
       let finalDisciplerId = formData.disciplerId;
-      let networkId = id;
 
       // 1. Se for novo discipulador, criar no Auth e Firestore
       if (formData.disciplerType === 'new') {
@@ -156,57 +152,26 @@ const NetworkForm = () => {
         finalDisciplerId = await registerUserFromAdmin(newUserPayload);
       }
 
-      // 2. Definir ID da rede se for nova
-      if (!networkId) {
-        const counterRef = doc(db, 'counters', 'networks');
-        const nextId = await runTransaction(db, async (t) => {
-          const doc = await t.get(counterRef);
-          const lastId = doc.exists() ? doc.data().lastId : 0;
-          t.set(counterRef, { lastId: lastId + 1 });
-          return lastId + 1;
-        });
-        networkId = `net_${nextId}`;
-      }
-
-      // 3. Upload do Logo
-      let logoURL = formData.logoURL;
-      if (logoFile) {
-        const storageRef = ref(storage, `networks/${networkId}/logo.jpg`);
-        await uploadBytes(storageRef, logoFile);
-        logoURL = await getDownloadURL(storageRef);
-      }
-
-      // 4. Salvar Rede
-      const networkData = {
+      // 2. Salvar Rede via Serviço
+      const networkPayload = {
         name: formData.name,
-        logoURL,
-        disciplerId: finalDisciplerId,
-        updatedAt: serverTimestamp()
+        logoURL: formData.logoURL,
+        disciplerId: finalDisciplerId
       };
 
-      if (!id) networkData.createdAt = serverTimestamp();
+      await saveNetwork(id, networkPayload, logoFile);
 
-      await setDoc(doc(db, 'networks', networkId), networkData, { merge: true });
-
-      // 5. Lógica de Desvínculo: Atualizar Discipulador (Remover vínculos antigos)
-      if (finalDisciplerId) {
-        await updateDoc(doc(db, 'users', finalDisciplerId), {
-          role: 'discipulador',
-          networkId: networkId,
-          cellId: null,
-          cellName: null
-        });
-      }
-
-      setSuccess("Rede salva com sucesso!");
-      setTimeout(() => navigate('/admin/networks'), 1500);
+      notify('success', "Rede salva com sucesso!");
+      setTimeout(() => navigate('/admin/networks'), 1000);
     } catch (err) {
       console.error(err);
-      setError("Erro ao salvar: " + err.message);
+      notify('error', "Erro ao salvar: " + err.message);
     } finally {
+      hideLoader();
       setLoading(false);
     }
   };
+
 
   const filteredUsers = users.filter(u => 
     u.name?.toLowerCase().includes(searchUser.toLowerCase()) || 
@@ -227,9 +192,6 @@ const NetworkForm = () => {
       </div>
 
       <div className="card static" style={{ padding: '2.5rem' }}>
-        {error && <div style={{ padding: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderLeft: '4px solid var(--danger-color)', color: 'var(--danger-color)', borderRadius: '4px', marginBottom: '2rem', fontSize: '0.875rem', fontWeight: '600' }}>{error}</div>}
-        {success && <div style={{ padding: '1rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderLeft: '4px solid var(--success-color)', color: 'var(--success-color)', borderRadius: '4px', marginBottom: '2rem', fontSize: '0.875rem', fontWeight: '600' }}>{success}</div>}
-
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1.5rem', fontStyle: 'italic' }}>
           Campos com <span style={{ color: 'var(--danger-color)', fontWeight: '700', fontStyle: 'normal' }}>*</span> são campos obrigatórios.
         </p>

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { collection, query, onSnapshot, orderBy, doc, deleteDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { subscribeUsers, deleteUser } from '../../services/userService';
+import { useGlobal } from '../../contexts/GlobalContext';
 import { Plus, Search, MoreVertical, Edit2, Trash2, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const UserManagement = () => {
   const { userData } = useAuth();
+  const { showLoader, hideLoader, notify } = useGlobal();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,23 +20,24 @@ const UserManagement = () => {
 
   const confirmDeleteUser = async () => {
     if (!userToDelete) return;
+    
+    showLoader(`Excluindo usuário ${userToDelete.name}...`);
     try {
-      await deleteDoc(doc(db, 'users', userToDelete.id));
+      await deleteUser(userToDelete.id);
       setUserToDelete(null);
+      notify('success', 'Usuário excluído com sucesso.');
     } catch (err) {
       console.error("Erro ao excluir", err);
-      alert("Erro ao excluir usuário. Verifique suas permissões.");
+      notify('error', 'Erro ao excluir usuário. Verifique suas permissões.');
+    } finally {
+      hideLoader();
     }
   };
 
+
+
   useEffect(() => {
-    const q = query(collection(db, 'users'), orderBy('name'));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const usersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+    const unsubscribe = subscribeUsers((usersData) => {
       setUsers(usersData);
       setLoading(false);
     });

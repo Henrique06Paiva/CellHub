@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { fetchCells, deleteCell } from '../../services/cellService';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Home, Plus, Edit2, Trash2, Users, Search, MoreVertical, ExternalLink, ShieldAlert, CheckCircle } from 'lucide-react';
@@ -13,18 +12,11 @@ const CellAdminManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    const fetchCells = async () => {
+    const loadCells = async () => {
       try {
-        let q;
-        if (userData?.role === 'root') {
-          q = query(collection(db, 'cells'), orderBy('name'));
-        } else if (userData?.role === 'discipulador' && userData.networkId) {
-          q = query(collection(db, 'cells'), where('networkId', '==', userData.networkId), orderBy('name'));
-        }
-
-        if (q) {
-          const snap = await getDocs(q);
-          setCells(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        if (userData) {
+          const data = await fetchCells(userData);
+          setCells(data);
         }
       } catch (err) {
         console.error(err);
@@ -32,13 +24,13 @@ const CellAdminManagement = () => {
         setLoading(false);
       }
     };
-    if (userData) fetchCells();
+    loadCells();
   }, [userData]);
 
   const handleDelete = async (id) => {
     if (window.confirm("Excluir esta célula?")) {
       try {
-        await deleteDoc(doc(db, 'cells', id));
+        await deleteCell(id);
         setCells(cells.filter(c => c.id !== id));
       } catch (err) {
         alert("Erro ao excluir.");

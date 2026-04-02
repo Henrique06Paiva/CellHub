@@ -1,39 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../../lib/firebase';
-import { collection, getDocs, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { fetchNetworks, deleteNetwork } from '../../services/networkService';
+import { useGlobal } from '../../contexts/GlobalContext';
 import { useNavigate } from 'react-router-dom';
 import { Network, Plus, Edit2, Trash2, Users, Search, Globe } from 'lucide-react';
 
 const NetworkManagement = () => {
   const navigate = useNavigate();
+  const { showLoader, hideLoader, notify } = useGlobal();
   const [networks, setNetworks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    const fetchNetworks = async () => {
+    const loadNetworks = async () => {
       try {
-        const q = query(collection(db, 'networks'), orderBy('name'));
-        const querySnapshot = await getDocs(q);
-        const nets = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setNetworks(nets);
+        const data = await fetchNetworks();
+        setNetworks(data);
       } catch (err) {
         console.error("Erro ao redes:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchNetworks();
+    loadNetworks();
   }, []);
 
   const handleDelete = async (id) => {
-    if (window.confirm("Tem certeza que deseja excluir esta rede? Esta ação é irreversível.")) {
-      try {
-        await deleteDoc(doc(db, 'networks', id));
-        setNetworks(networks.filter(n => n.id !== id));
-      } catch (err) {
-        alert("Erro ao excluir rede.");
-      }
+    if (!window.confirm("Tem certeza que deseja excluir esta rede? Esta ação é irreversível.")) return;
+
+    showLoader("Excluindo rede...");
+    try {
+      await deleteNetwork(id);
+      setNetworks(networks.filter(n => n.id !== id));
+      notify('success', 'Rede excluída com sucesso.');
+    } catch (err) {
+      notify('error', 'Erro ao excluir rede. Verifique se há células vinculadas.');
+    } finally {
+      hideLoader();
     }
   };
 

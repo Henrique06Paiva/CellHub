@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { db } from '../../lib/firebase';
 import { Network, Activity, Home, Users, AlertTriangle } from 'lucide-react';
-import { collection, query, where, getDocs, doc, getDoc, orderBy, limit } from 'firebase/firestore';
+import { fetchNetworks, fetchNetworkById } from '../../services/networkService';
+import { fetchCells } from '../../services/cellService';
+import { fetchUserById, fetchUsers } from '../../services/userService';
+import { fetchReports } from '../../services/reportService';
 
 const NetworkView = () => {
   const { currentUser, userData } = useAuth();
@@ -15,70 +17,52 @@ const NetworkView = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadNetworkDataCombined = async () => {
       try {
         let networkData = null;
         
         if (userData?.networkId) {
-          const netDoc = await getDoc(doc(db, 'networks', userData.networkId));
-          if (netDoc.exists()) {
-            networkData = { id: netDoc.id, ...netDoc.data() };
-          }
-        } else {
-          const netQ = query(collection(db, 'networks'), where('disciplerId', '==', currentUser?.uid));
-          const netSnap = await getDocs(netQ);
-          if (!netSnap.empty) {
-            networkData = { id: netSnap.docs[0].id, ...netSnap.docs[0].data() };
-          }
+          networkData = await fetchNetworkById(userData.networkId);
+        } else if (currentUser?.uid) {
+          const networks = await fetchNetworks({ disciplerId: currentUser.uid });
+          if (networks.length > 0) networkData = networks[0];
         }
 
         if (networkData) {
           setMyNetwork(networkData);
 
-          const cellsQ = query(collection(db, 'cells'), where('networkId', '==', networkData.id));
-          const cellsSnap = await getDocs(cellsQ);
-          const loadedCells = cellsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          const loadedCells = await fetchCells({ networkId: networkData.id });
           setCells(loadedCells);
 
           const lMap = {};
           const cMap = {};
-          let totalMems = 0;
           
           for (const cell of loadedCells) {
             if (cell.leaderId) {
-              const lDoc = await getDoc(doc(db, 'users', cell.leaderId));
-              if (lDoc.exists()) lMap[cell.leaderId] = { id: lDoc.id, ...lDoc.data() };
+              const leaderData = await fetchUserById(cell.leaderId);
+              if (leaderData) lMap[cell.leaderId] = leaderData;
             }
-            const memQ = query(collection(db, 'users'), where('cellId', '==', cell.id));
-            const memSnap = await getDocs(memQ);
-            cMap[cell.id] = memSnap.size;
+            const cellMembers = await fetchUsers({ cellId: cell.id });
+            cMap[cell.id] = cellMembers.length;
           }
           setLeaders(lMap);
           setCellsMembersCount(cMap);
 
           // Calculate low attendance summary for the network
           const lowAttSum = {};
-          const reportsQ = query(
-            collection(db, 'reports'),
-            where('networkId', '==', networkData.id),
-            orderBy('date', 'desc'),
-            limit(100) // Get recent reports to analyze
-          );
-          const reportsSnap = await getDocs(reportsQ);
-          const reports = reportsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          const reports = await fetchReports(userData, { networkId: networkData.id });
+          const recentReportsAll = reports.slice(0, 100);
 
           for (const cell of loadedCells) {
-            const cellReports = reports.filter(r => r.cellId === cell.id).slice(0, 4);
+            const cellReports = recentReportsAll.filter(r => r.cellId === cell.id).slice(0, 4);
             if (cellReports.length === 0) continue;
 
-            const memQ = query(collection(db, 'users'), where('cellId', '==', cell.id));
-            const memSnap = await getDocs(memQ);
+            const cellMembers = await fetchUsers({ cellId: cell.id });
             let countLow = 0;
 
-            for (const memberDoc of memSnap.docs) {
-              const memberId = memberDoc.id;
+            for (const member of cellMembers) {
               const attendedCount = cellReports.filter(r => 
-                r.members?.some(m => m.uid === memberId && m.present)
+                r.members?.some(m => m.uid === member.id && m.present)
               ).length;
               const pct = Math.round((attendedCount / cellReports.length) * 100);
               if (pct < 50) {
@@ -97,7 +81,7 @@ const NetworkView = () => {
         setLoading(false);
       }
     };
-    fetchData();
+    if (currentUser) loadNetworkDataCombined();
   }, [currentUser, userData]);
 
   if (loading) return <div style={{ padding: '2rem' }}>Carregando dados da rede...</div>;

@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { db, storage } from '../../lib/firebase';
-import { collection, doc, getDoc, setDoc, updateDoc, query, where, getDocs, serverTimestamp, runTransaction, orderBy } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGlobal } from '../../contexts/GlobalContext';
+import { fetchCellById, saveCell } from '../../services/cellService';
+import { fetchNetworks } from '../../services/networkService';
+import { fetchUsers } from '../../services/userService';
 import { ArrowLeft, Home, Camera, User, Mail, Search, Check, ChevronDown, Loader2, MapPin, Phone, Calendar } from 'lucide-react';
 
 const CellAdminForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { userData, registerUserFromAdmin } = useAuth();
+  const { showLoader, hideLoader, notify } = useGlobal();
   
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(!!id);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
 
   const [formData, setFormData] = useState({
@@ -44,20 +44,16 @@ const CellAdminForm = () => {
     const fetchData = async () => {
       try {
         // Fetch Networks
-        const netQ = query(collection(db, 'networks'), orderBy('name'));
-        const netSnap = await getDocs(netQ);
-        const nets = netSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const nets = await fetchNetworks();
         setNetworks(nets);
 
         // Fetch Users (potential leaders)
-        const userQ = query(collection(db, 'users'), where('role', 'in', ['lider', 'membro']));
-        const userSnap = await getDocs(userQ);
-        setUsers(userSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const userList = await fetchUsers({ role: ['lider', 'membro'] });
+        setUsers(userList);
 
         if (id) {
-          const cellSnap = await getDoc(doc(db, 'cells', id));
-          if (cellSnap.exists()) {
-            const data = cellSnap.data();
+          const data = await fetchCellById(id);
+          if (data) {
             setFormData(prev => ({
               ...prev,
               name: data.name || '',
@@ -119,8 +115,6 @@ const CellAdminForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
 
     const errors = {};
     if (!formData.name.trim()) errors.name = 'O nome da célula é obrigatórios.';
@@ -145,16 +139,16 @@ const CellAdminForm = () => {
 
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
-      setError('Preencha os campos obrigatórios.');
+      notify('error', 'Preencha os campos obrigatórios.');
       return;
     }
 
     setLoading(true);
+    showLoader(id ? 'Atualizando célula...' : 'Criando nova célula...');
 
     try {
       let finalLeaderId = formData.leaderId;
       let finalLeaderName = formData.leaderName;
-      let cellId = id;
 
       // 1. Criar novo líder se necessário
       if (formData.leaderType === 'new') {
@@ -178,63 +172,32 @@ const CellAdminForm = () => {
         finalLeaderName = '';
       }
 
-      // 2. Definir ID da célula
-      if (!cellId) {
-        const counterRef = doc(db, 'counters', 'cells');
-        const nextId = await runTransaction(db, async (t) => {
-          const doc = await t.get(counterRef);
-          const lastId = doc.exists() ? doc.data().lastId : 0;
-          t.set(counterRef, { lastId: lastId + 1 });
-          return lastId + 1;
-        });
-        cellId = `cell_${nextId}`;
-      }
-
-      // 3. Upload Logo
-      let logoURL = formData.logoURL;
-      if (logoFile) {
-        const storageRef = ref(storage, `cells/${cellId}/logo.jpg`);
-        await uploadBytes(storageRef, logoFile);
-        logoURL = await getDownloadURL(storageRef);
-      }
-
-      // 4. Salvar Célula
+      // 2. Salvar Célula via Serviço
       const status = finalLeaderId ? 'ativo' : 'inativo';
-      const cellData = {
+      const cellPayload = {
         name: formData.name,
         cep: formData.cep,
         address: formData.address,
-        logoURL,
+        logoURL: formData.logoURL,
         networkId: formData.networkId,
         leaderId: finalLeaderId || null,
         leaderName: finalLeaderName || null,
-        status,
-        updatedAt: serverTimestamp()
+        status
       };
 
-      if (!id) cellData.createdAt = serverTimestamp();
+      await saveCell(id, cellPayload, logoFile);
 
-      await setDoc(doc(db, 'cells', cellId), cellData, { merge: true });
-
-      // 5. Lógica de Desvínculo: Atualizar Líder
-      if (finalLeaderId) {
-        await updateDoc(doc(db, 'users', finalLeaderId), {
-          role: 'lider',
-          cellId: cellId,
-          cellName: formData.name,
-          networkId: formData.networkId
-        });
-      }
-
-      setSuccess("Célula salva com sucesso!");
-      setTimeout(() => navigate('/admin/cells'), 1500);
+      notify('success', "Célula salva com sucesso!");
+      setTimeout(() => navigate('/admin/cells'), 1000);
     } catch (err) {
       console.error(err);
-      setError("Erro ao salvar: " + err.message);
+      notify('error', "Erro ao salvar: " + err.message);
     } finally {
+      hideLoader();
       setLoading(false);
     }
   };
+
 
   const filteredUsers = users.filter(u => 
     u.name?.toLowerCase().includes(searchUser.toLowerCase()) || 
@@ -255,9 +218,6 @@ const CellAdminForm = () => {
       </div>
 
       <div className="card static" style={{ padding: '2.5rem' }}>
-        {error && <div style={{ padding: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderLeft: '4px solid var(--danger-color)', color: 'var(--danger-color)', borderRadius: '4px', marginBottom: '2rem', fontSize: '0.875rem', fontWeight: '600' }}>{error}</div>}
-        {success && <div style={{ padding: '1rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderLeft: '4px solid var(--success-color)', color: 'var(--success-color)', borderRadius: '4px', marginBottom: '2rem', fontSize: '0.875rem', fontWeight: '600' }}>{success}</div>}
-
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1.5rem', fontStyle: 'italic' }}>
           Campos com <span style={{ color: 'var(--danger-color)', fontWeight: '700', fontStyle: 'normal' }}>*</span> são campos obrigatórios.
         </p>

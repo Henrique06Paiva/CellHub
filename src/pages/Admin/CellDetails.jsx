@@ -1,33 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { db } from '../../lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { fetchCellById } from '../../services/cellService';
+import { fetchUsers } from '../../services/userService';
+import { fetchReports } from '../../services/reportService';
+import { useAuth } from '../../contexts/AuthContext';
 import { Home, User, Users, MapPin, Calendar, ArrowLeft, Edit2, TrendingUp, Filter, FileText } from 'lucide-react';
 
 const CellAdminDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { userData } = useAuth();
   const [cell, setCell] = useState(null);
   const [members, setMembers] = useState([]);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCellDetails = async () => {
+    const loadCellDetails = async () => {
       try {
-        const cellDoc = await getDoc(doc(db, 'cells', id));
-        if (cellDoc.exists()) {
-          setCell({ id: cellDoc.id, ...cellDoc.data() });
+        const cellData = await fetchCellById(id);
+        if (cellData) {
+          setCell(cellData);
           
           // Fetch members
-          const membersQ = query(collection(db, 'users'), where('cellId', '==', id));
-          const membersSnap = await getDocs(membersQ);
-          setMembers(membersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          const membersList = await fetchUsers({ cellId: id });
+          setMembers(membersList);
 
           // Fetch recent reports
-          const reportsQ = query(collection(db, 'reports'), where('cellId', '==', id), orderBy('date', 'desc'), limit(5));
-          const reportsSnap = await getDocs(reportsQ);
-          setReports(reportsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          const reportsList = await fetchReports(userData, { cellId: id });
+          setReports(reportsList.slice(0, 5));
         }
       } catch (err) {
         console.error(err);
@@ -35,8 +36,8 @@ const CellAdminDetails = () => {
         setLoading(false);
       }
     };
-    fetchCellDetails();
-  }, [id]);
+    if (userData) loadCellDetails();
+  }, [id, userData]);
 
   if (loading) return <div style={{ padding: '2rem' }}>Carregando detalhes...</div>;
   if (!cell) return <div style={{ padding: '2rem' }}>Célula não encontrada.</div>;
