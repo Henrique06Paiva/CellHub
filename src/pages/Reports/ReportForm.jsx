@@ -235,17 +235,17 @@ const ReportForm = () => {
       }
 
       const reportPayload = {
-        cellId: userData.cellId,
+        cellId: userData.cellId || '',
         cellName: cellData?.name || '',
         networkId: userData.networkId || null,
-        leaderId: currentUser.uid,
-        leaderName: userData.name || currentUser.email,
+        leaderId: currentUser.uid || '',
+        leaderName: userData.name || currentUser.email || 'Desconhecido',
         date: new Date().toISOString().split('T')[0],
-        meetingDay: parseInt(meetingDay),
+        meetingDay: parseInt(meetingDay) || 0,
         meetingDayLabel: DAYS_OF_WEEK.find(d => d.value === parseInt(meetingDay))?.label || '',
         members: members.map(m => ({
-          uid: m.uid,
-          name: m.name,
+          uid: m.uid || '',
+          name: m.name || 'Sem Nome',
           present: presentIds.includes(m.uid),
           observation: memberObservations[m.uid] || ''
         })),
@@ -253,9 +253,16 @@ const ReportForm = () => {
         absentCount: members.length - presentIds.length,
         totalMembers: members.length,
         visitors: parseInt(visitors) || 0,
-        notes: notes.trim(),
-        photoURL
+        notes: notes || '',
+        photoURL: photoURL || ''
       };
+
+      // Limpar todos os undefined residuais num nível base
+      Object.keys(reportPayload).forEach(key => {
+        if (reportPayload[key] === undefined) {
+          reportPayload[key] = null;
+        }
+      });
 
       await saveReport(null, reportPayload);
 

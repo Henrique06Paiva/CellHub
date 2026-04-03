@@ -76,6 +76,13 @@ export const saveReport = async (id, data) => {
       updatedAt: serverTimestamp()
     };
 
+    // Remover propriedades undefined que quebram o Firestore
+    Object.keys(reportData).forEach(key => {
+      if (reportData[key] === undefined) {
+        delete reportData[key];
+      }
+    });
+
     if (!id) {
       reportData.createdAt = serverTimestamp();
     }
