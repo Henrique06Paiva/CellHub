@@ -62,10 +62,7 @@ const CellManagement = () => {
 
   return (
     <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1>Gestão da Liderança - {myCell.name}</h1>
-        <p style={{ color: 'var(--text-muted)' }}>Controle de membros e relatórios da sua célula.</p>
-      </div>
+
 
       {/* Quick Actions */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>

@@ -37,7 +37,7 @@ const DashboardLayout = () => {
   };
 
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', background: 'var(--bg-color)', overflow: 'hidden', display: 'flex' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--bg-color)', overflow: 'hidden', display: 'flex' }}>
       
       {/* Sidebar */}
       <nav style={{
@@ -264,8 +264,8 @@ const DashboardLayout = () => {
         </header>
 
         {/* Scrollable Page Content */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: '2.5rem', position: 'relative', zIndex: 10 }}>
-          <div className="animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+        <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '1.5rem', position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column' }}>
+          <div className="animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto', width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
             <Outlet />
           </div>
         </main>

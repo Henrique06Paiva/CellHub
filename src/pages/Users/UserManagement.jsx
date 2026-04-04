@@ -67,12 +67,8 @@ const UserManagement = () => {
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
   return (
-    <div style={{ height: 'calc(100vh - 5rem)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexShrink: 0 }}>
-        <div>
-          <h1 style={{ margin: 0 }}>Gestão de Usuários</h1>
-        </div>
-      </div>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
 
       <div className="card static" style={{ padding: '0', overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--surface-color)' }}>
         
@@ -160,7 +156,9 @@ const UserManagement = () => {
                         {user.name}
                       </td>
                       <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                        {user.email}
+                        <div style={{ wordBreak: 'break-all', maxWidth: '250px' }}>
+                          {user.email}
+                        </div>
                       </td>
                       <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
                         {user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}

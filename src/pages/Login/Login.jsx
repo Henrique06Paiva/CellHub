@@ -145,8 +145,8 @@ const Login = () => {
   return (
     <div style={{ 
       display: 'flex',
-      minHeight: '100vh',
-      width: '100vw',
+      height: '100vh',
+      width: '100%',
       background: '#090e17', // Very dark slate/navy
       overflow: 'hidden',
       color: '#f8fafc'
@@ -161,7 +161,8 @@ const Login = () => {
         zIndex: 10,
         backgroundColor: '#090e17',
         boxShadow: '15px 0 50px rgba(0,0,0,0.5)',
-        maxWidth: '550px'
+        maxWidth: '550px',
+        overflowY: 'auto'
       }}>
         <div style={{ 
           flex: 1, 
