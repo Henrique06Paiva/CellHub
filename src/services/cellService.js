@@ -1,126 +1,71 @@
-import { db, storage } from '../lib/firebase';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  getDoc, 
-  doc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  orderBy, 
-  serverTimestamp, 
-  runTransaction 
-} from 'firebase/firestore';
+import api from '../api/axios';
+import { storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-/**
- * Busca células baseadas nas permissões do usuário
- */
 export const fetchCells = async (userData) => {
   try {
-    let q;
-    if (userData?.role === 'root') {
-      q = query(collection(db, 'cells'), orderBy('name'));
-    } else if (userData?.role === 'discipulador' && userData.networkId) {
-      q = query(collection(db, 'cells'), where('networkId', '==', userData.networkId), orderBy('name'));
+    const params = {};
+    if (userData?.role === 'discipulador' && userData.networkId) {
+      params.networkId = userData.networkId;
     }
+    // API backend usa auth interceptor, logo a API já sabe o ROLE no token
 
-    if (q) {
-      const snap = await getDocs(q);
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
-    return [];
+    const response = await api.get('/cells', { params });
+    return response.data;
   } catch (error) {
-    console.error("Erro ao buscar células:", error);
+    console.error("Erro ao buscar células da API:", error);
     throw error;
   }
 };
 
-/**
- * Busca uma única célula pelo ID
- */
 export const fetchCellById = async (id) => {
   try {
-    const snap = await getDoc(doc(db, 'cells', id));
-    if (snap.exists()) {
-      return { id: snap.id, ...snap.data() };
-    }
-    return null;
+    const response = await api.get(`/cells/${id}`);
+    return response.data;
   } catch (error) {
-    console.error("Erro ao buscar célula:", error);
+    if (error.response?.status === 404) return null;
+    console.error("Erro ao buscar célula da API:", error);
     throw error;
   }
 };
 
-/**
- * Salva uma célula (Criação ou Atualização)
- * Lida com upload de logo e transação de ID (se novo)
- */
 export const saveCell = async (id, data, logoFile) => {
   try {
-    let cellId = id;
-    
-    // 1. Gerar ID se for nova célula
-    if (!cellId) {
-      const counterRef = doc(db, 'counters', 'cells');
-      const nextId = await runTransaction(db, async (t) => {
-        const docSnap = await t.get(counterRef);
-        const lastId = docSnap.exists() ? docSnap.data().lastId : 0;
-        t.set(counterRef, { lastId: lastId + 1 });
-        return lastId + 1;
-      });
-      cellId = `cell_${nextId}`;
-    }
-
-    // 2. Upload de Logo se houver novo arquivo
     let logoURL = data.logoURL;
+    
+    // O Upload do logo continua no front usando o SDK Storage para não sobrecarregar a API Nodes
+    // Em arquiteturas enterprise complexas, o front pediria uma "Signed URL" para a Node API e uparia direto no S3/Storage
     if (logoFile) {
-      const storageRef = ref(storage, `cells/${cellId}/logo.jpg`);
-      await uploadBytes(storageRef, logoFile);
-      logoURL = await getDownloadURL(storageRef);
+        // Geramos um UUID randomico já que o cellId virá da API somente DEPOIS
+        // Em um sistema real transacionado, você cria primeiro na API, e dps uparia
+        const tempId = id || crypto.randomUUID(); 
+        const storageRef = ref(storage, `cells/${tempId}/logo.jpg`);
+        await uploadBytes(storageRef, logoFile);
+        logoURL = await getDownloadURL(storageRef);
     }
+    
+    const requestData = { ...data, logoURL };
 
-    // 3. Preparar dados
-    const cellData = {
-      ...data,
-      logoURL,
-      updatedAt: serverTimestamp()
-    };
-
-    if (!id) {
-      cellData.createdAt = serverTimestamp();
+    let response;
+    if (id) {
+       response = await api.put(`/cells/${id}`, requestData);
+    } else {
+       response = await api.post(`/cells`, requestData);
     }
-
-    // 4. Salvar documento
-    await setDoc(doc(db, 'cells', cellId), cellData, { merge: true });
-
-    // 5. Vincular ao Líder se existir
-    if (data.leaderId) {
-      await updateDoc(doc(db, 'users', data.leaderId), {
-        role: 'lider',
-        cellId: cellId,
-        cellName: data.name,
-        networkId: data.networkId
-      });
-    }
-
-    return { id: cellId, ...cellData };
+    
+    return response.data;
   } catch (error) {
-    console.error("Erro ao salvar célula:", error);
+    console.error("Erro ao salvar célula na API:", error);
     throw error;
   }
 };
 
-/**
- * Exclui uma célula
- */
 export const deleteCell = async (id) => {
   try {
-    await deleteDoc(doc(db, 'cells', id));
+    const response = await api.delete(`/cells/${id}`);
+    return response.data;
   } catch (error) {
-    console.error("Erro ao excluir célula:", error);
+    console.error("Erro ao excluir célula na API:", error);
     throw error;
   }
 };

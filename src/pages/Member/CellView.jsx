@@ -91,35 +91,37 @@ const CellView = () => {
         </div>
         
         {members.length > 0 ? (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>E-mail</th>
-                <th>Papel</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map(m => (
-                <tr key={m.id}>
-                  <td style={{ fontWeight: '500' }}>{m.name} {m.id === currentUser?.uid && '(Você)'}</td>
-                  <td style={{ color: 'var(--text-muted)' }}>{m.email}</td>
-                  <td>
-                    <span style={{ 
-                      padding: '0.25rem 0.5rem', 
-                      borderRadius: '4px', 
-                      fontSize: '0.75rem', 
-                      fontWeight: '600',
-                      background: m.role === 'leader' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(99, 102, 241, 0.2)',
-                      color: m.role === 'leader' ? '#fbbf24' : 'var(--primary-color)'
-                    }}>
-                      {m.role === 'leader' ? 'Líder' : 'Membro'}
-                    </span>
-                  </td>
+          <div className="table-responsive-wrapper">
+            <table className="data-table" style={{ minWidth: '600px' }}>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Papel</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {members.map(m => (
+                  <tr key={m.id}>
+                    <td style={{ fontWeight: '500' }}>{m.name} {m.id === currentUser?.uid && '(Você)'}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{m.email}</td>
+                    <td>
+                      <span style={{ 
+                        padding: '0.25rem 0.5rem', 
+                        borderRadius: '4px', 
+                        fontSize: '0.75rem', 
+                        fontWeight: '600',
+                        background: m.role === 'leader' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(99, 102, 241, 0.2)',
+                        color: m.role === 'leader' ? '#fbbf24' : 'var(--primary-color)'
+                      }}>
+                        {m.role === 'leader' ? 'Líder' : 'Membro'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <p style={{ color: 'var(--text-muted)' }}>Nenhum membro vinculado a esta célula ainda.</p>
         )}

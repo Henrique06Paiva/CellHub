@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { subscribeUsers, deleteUser } from '../../services/userService';
+import { fetchUsers, deleteUser } from '../../services/userService';
 import { useGlobal } from '../../contexts/GlobalContext';
 import { Plus, Search, MoreVertical, Edit2, Trash2, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -37,12 +37,22 @@ const UserManagement = () => {
 
 
   useEffect(() => {
-    const unsubscribe = subscribeUsers((usersData) => {
-      setUsers(usersData);
-      setLoading(false);
-    });
+    let mounted = true;
+    const loadUsers = async () => {
+      try {
+        const usersData = await fetchUsers();
+        if(mounted) {
+          setUsers(usersData);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error(error);
+        if(mounted) setLoading(false);
+      }
+    };
+    loadUsers();
 
-    return () => unsubscribe();
+    return () => { mounted = false; };
   }, []);
 
   const filteredUsers = users.filter(user => {
@@ -131,8 +141,8 @@ const UserManagement = () => {
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Carregando dados globais...</div>
         ) : (
           <>
-            <div style={{ overflow: 'auto', flex: 1 }}>
-              <table className="data-table" style={{ borderCollapse: 'collapse', width: '100%' }}>
+            <div className="table-responsive-wrapper" style={{ flex: 1 }}>
+              <table className="data-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: '800px' }}>
               <thead>
                 <tr>
                   <th style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--surface-hover)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '1rem', borderRight: '1px solid var(--border-color)', fontWeight: '700', fontSize: '0.75rem', textAlign: 'left' }}>Código</th>

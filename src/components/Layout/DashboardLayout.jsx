@@ -37,21 +37,16 @@ const DashboardLayout = () => {
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--bg-color)', overflow: 'hidden', display: 'flex' }}>
+    <div className="app-dashboard" style={{ background: 'var(--bg-color)' }}>
       
+      {/* Mobile Overlay */}
+      <div 
+        className={`sidebar-overlay ${isSidebarOpen ? 'mobile-open' : ''}`} 
+        onClick={() => setIsSidebarOpen(false)}
+      ></div>
+
       {/* Sidebar */}
-      <nav style={{
-        width: isSidebarOpen ? '260px' : '80px',
-        height: '100%',
-        background: 'var(--surface-color)',
-        borderRight: '1px solid var(--border-color)',
-        display: 'flex',
-        flexDirection: 'column',
-        zIndex: 20,
-        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        boxShadow: '4px 0 24px rgba(0,0,0,0.15)',
-        flexShrink: 0
-      }}>
+      <nav className={`app-sidebar ${!isSidebarOpen ? 'collapsed' : ''} ${isSidebarOpen ? 'mobile-open' : ''}`}>
         {/* Brand Header */}
         <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: isSidebarOpen ? 'space-between' : 'center', padding: isSidebarOpen ? '0 1.5rem' : '0', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
           {isSidebarOpen ? (
@@ -167,14 +162,14 @@ const DashboardLayout = () => {
       </nav>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', position: 'relative', zIndex: 10 }}>
+      <div className="main-content">
         
         {/* Background Orbs */}
         <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: '40vw', height: '40vw', background: 'rgba(37, 99, 235, 0.05)', borderRadius: '50%', filter: 'blur(80px)', zIndex: 0, pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-20%', left: '-10%', width: '40vw', height: '40vw', background: 'rgba(16, 185, 129, 0.03)', borderRadius: '50%', filter: 'blur(100px)', zIndex: 0, pointerEvents: 'none' }} />
 
         {/* Top Header */}
-        <header style={{ height: '70px', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-color)', boxShadow: '0 4px 24px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', zIndex: 20, flexShrink: 0 }}>
+        <header className="top-header">
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {!isSidebarOpen && (

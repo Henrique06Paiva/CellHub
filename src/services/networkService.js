@@ -1,103 +1,65 @@
-import { db, storage } from '../lib/firebase';
-import { 
-  collection, 
-  query, 
-  getDocs, 
-  getDoc, 
-  doc, 
-  setDoc, 
-  deleteDoc, 
-  orderBy, 
-  serverTimestamp 
-} from 'firebase/firestore';
+import api from '../api/axios';
+import { storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-/**
- * Busca todas as redes com filtros opcionais
- */
 export const fetchNetworks = async (filters = {}) => {
   try {
-    let q = query(collection(db, 'networks'), orderBy('name'));
-    
-    if (filters.disciplerId) {
-      q = query(q, where('disciplerId', '==', filters.disciplerId));
-    }
-    
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const params = new URLSearchParams();
+    if (filters.disciplerId) params.append('disciplerId', filters.disciplerId);
+
+    const response = await api.get('/networks', { params });
+    return response.data;
   } catch (error) {
-    console.error("Erro ao buscar redes:", error);
+    console.error("Erro ao buscar redes da API:", error);
     throw error;
   }
 };
 
-
-/**
- * Busca uma única rede pelo ID
- */
 export const fetchNetworkById = async (id) => {
   try {
-    const snap = await getDoc(doc(db, 'networks', id));
-    if (snap.exists()) {
-      return { id: snap.id, ...snap.data() };
-    }
-    return null;
+    const response = await api.get(`/networks/${id}`);
+    return response.data;
   } catch (error) {
-    console.error("Erro ao buscar rede:", error);
+    if (error.response?.status === 404) return null;
+    console.error("Erro ao buscar rede da API:", error);
     throw error;
   }
 };
 
-/**
- * Salva uma rede (Criação ou Atualização)
- */
 export const saveNetwork = async (id, data, logoFile) => {
   try {
-    let netId = id;
-    
-    // Se não houver ID, Firestore gerará um aleatório usando doc(collection())
-    if (!netId) {
-        const docRef = doc(collection(db, 'networks'));
-        netId = docRef.id;
-    }
-
-    // 2. Upload de Logo se houver novo arquivo
     let logoURL = data.logoURL;
+    
+    // Upload frontend-side architecture just for binary storage mapping
     if (logoFile) {
-      const storageRef = ref(storage, `networks/${netId}/logo.jpg`);
-      await uploadBytes(storageRef, logoFile);
-      logoURL = await getDownloadURL(storageRef);
+        const tempId = id || crypto.randomUUID(); 
+        const storageRef = ref(storage, `networks/${tempId}/logo.jpg`);
+        await uploadBytes(storageRef, logoFile);
+        logoURL = await getDownloadURL(storageRef);
     }
+    
+    const requestData = { ...data, logoURL };
 
-    // 3. Preparar dados
-    const netData = {
-      ...data,
-      logoURL,
-      updatedAt: serverTimestamp()
-    };
-
-    if (!id) {
-      netData.createdAt = serverTimestamp();
+    let response;
+    if (id) {
+       response = await api.put(`/networks/${id}`, requestData);
+    } else {
+       response = await api.post(`/networks`, requestData);
     }
-
-    // 4. Salvar documento
-    await setDoc(doc(db, 'networks', netId), netData, { merge: true });
-
-    return { id: netId, ...netData };
+    
+    return response.data;
   } catch (error) {
-    console.error("Erro ao salvar rede:", error);
+    console.error("Erro ao salvar rede na API:", error);
     throw error;
   }
 };
 
-/**
- * Exclui uma rede
- */
 export const deleteNetwork = async (id) => {
   try {
-    await deleteDoc(doc(db, 'networks', id));
+    const response = await api.delete(`/networks/${id}`);
+    return response.data;
   } catch (error) {
-    console.error("Erro ao excluir rede:", error);
+    console.error("Erro ao excluir rede na API:", error);
     throw error;
   }
 };

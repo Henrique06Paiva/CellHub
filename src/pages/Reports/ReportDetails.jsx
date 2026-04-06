@@ -187,7 +187,7 @@ const ReportDetails = () => {
         <div style={{ height: '1px', background: 'var(--border-color)', width: '100%' }} />
 
         {/* Presence Lists */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+        <div className="grid-responsive" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
 
           {/* Present */}
           <div>

@@ -284,7 +284,7 @@ const NetworkForm = () => {
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+              <div className="grid-responsive" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.4rem', color: 'var(--text-muted)' }}>NOME COMPLETO <span style={{ color: 'var(--danger-color)' }}>*</span></label>
                   <input type="text" value={formData.newName} onChange={e => { setFormData({...formData, newName: e.target.value}); clearFieldError('newName'); }} style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '6px', border: `1px solid ${errBorder('newName')}`, boxShadow: fieldErrors.newName ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : 'none' }} placeholder="Nome do Discipulador" />

@@ -175,29 +175,31 @@ const NetworkView = () => {
         <h2 style={{ marginBottom: '1.5rem' }}>Células da Rede</h2>
         
         {cells.length > 0 ? (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Célula</th>
-                <th>Líder</th>
-                <th>Endereço</th>
-                <th>Membros</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cells.map(cell => {
-                const leader = leaders[cell.leaderId];
-                return (
-                  <tr key={cell.id}>
-                    <td style={{ fontWeight: '600', color: 'var(--primary-hover)' }}>{cell.name}</td>
-                    <td>{leader ? leader.name : <span style={{ color: 'var(--danger-color)', fontSize: '0.85rem' }}>Sem Líder</span>}</td>
-                    <td style={{ color: 'var(--text-muted)' }}>{cell.address}</td>
-                    <td>{cellsMembersCount[cell.id] || 0}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="table-responsive-wrapper">
+            <table className="data-table" style={{ minWidth: '600px' }}>
+              <thead>
+                <tr>
+                  <th>Célula</th>
+                  <th>Líder</th>
+                  <th>Endereço</th>
+                  <th>Membros</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cells.map(cell => {
+                  const leader = leaders[cell.leaderId];
+                  return (
+                    <tr key={cell.id}>
+                      <td style={{ fontWeight: '600', color: 'var(--primary-hover)' }}>{cell.name}</td>
+                      <td>{leader ? leader.name : <span style={{ color: 'var(--danger-color)', fontSize: '0.85rem' }}>Sem Líder</span>}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{cell.address}</td>
+                      <td>{cellsMembersCount[cell.id] || 0}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <p style={{ color: 'var(--text-muted)' }}>Nenhuma célula associada a esta rede encontrada.</p>
         )}

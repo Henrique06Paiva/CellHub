@@ -284,8 +284,8 @@ const ReportsList = () => {
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Carregando relatórios...</div>
         ) : (
           <>
-            <div style={{ overflow: 'auto', flex: 1 }}>
-              <table className="data-table" style={{ borderCollapse: 'collapse', width: '100%' }}>
+            <div className="table-responsive-wrapper" style={{ flex: 1 }}>
+              <table className="data-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: '800px' }}>
                 <thead>
                   <tr>
                     {columns.map(header => (

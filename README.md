@@ -53,38 +53,44 @@ Plataforma SaaS moderna para gestão e supervisão de redes de células, com con
 | Camada | Tecnologia |
 |---|---|
 | **Frontend** | React 19 + Vite 8 |
-| **Backend** | Firebase (Auth, Firestore, Storage, Hosting) |
+| **Backend API** | Node.js + Express (JWT + Admin SDK) |
+| **Database** | Firebase Firestore (operado via API) |
 | **Estilo** | CSS Vanilla (Variables, Flexbox, Animations) |
 | **Ícones** | Lucide React |
 | **Routing** | React Router DOM 7 |
 
 ### Estrutura do Projeto
 ```
-src/
+backend/
+├── config/                    # Configurações do Firebase Admin SDK
+├── controllers/               # Lógica de negócio (Controllers isolados)
+├── middlewares/               # Middlewares (Proteção JWT)
+├── routes/                    # Rotas Express REST
+├── server.js                  # Ponto de entrada da API Node.js
+├── serviceAccountKey.json     # (IGNORE) Chave Mestra privada do Google Cloud
+└── package.json               # Dependências da API
+
+src/ (Frontend)
 ├── App.jsx                    # Router principal + ProtectedRoutes
-├── main.jsx                   # Entry point
+├── api/
+│   └── axios.js               # Cliente HTTP com Interceptor de Token JWT
 ├── index.css                  # Design system (CSS Variables + Global)
 ├── contexts/
 │   └── AuthContext.jsx        # Auth state, login, cadastro admin, RBAC
-├── lib/
-│   └── firebase.js            # Configuração e exports do Firebase SDK
 ├── components/
-│   ├── Layout/
-│   │   └── DashboardLayout.jsx  # Sidebar + Header + Outlet
-│   └── SeedDevTool.jsx        # Ferramenta dev para dados de teste
+│   └── Layout/
+│       └── DashboardLayout.jsx  # Sidebar + Header + Outlet
 ├── pages/
 │   ├── Login/Login.jsx        # Tela de login + esqueceu senha
 │   ├── Member/CellView.jsx    # Visão do membro
 │   ├── Leader/CellManagement.jsx  # Gestão da célula (líder)
 │   ├── Discipler/NetworkView.jsx  # Visão da rede (discipulador)
 │   └── Users/
-│       ├── UserManagement.jsx   # Listagem de usuários
+│       ├── UserManagement.jsx   # Listagem de usuários consumindo API REST
 │       ├── UserForm.jsx         # Cadastro/edição de usuários
 │       └── UserDetails.jsx      # Perfil detalhado do usuário
-firestore.rules                # Regras de segurança do Firestore
-firestore.indexes.json         # Índices do Firestore
-storage.rules                  # Regras do Storage
-firebase.json                  # Config do Firebase CLI
+firestore.rules                # Regras antigas de segurança (substituidas pelo Backend)
+firebase.json                  # Config do Firebase CLI (Hosting)
 ```
 
 ### Firestore — Modelo de Dados
@@ -109,11 +115,20 @@ reports/{reportId}   → { cellId, networkId, ... }
 # 1. Clone
 git clone <repo-url> && cd Nexo-Hub
 
-# 2. Instale dependências
+# 2. Instale dependências de ambos os ecossistemas
 npm install
+cd backend && npm install && cd ..
 
-# 3. Desenvolvimento
-npm run dev         # → http://localhost:5173
+# 3. Setup de Chave
+# Baixe sua Service Account do Google Cloud/Firebase e salve em `backend/serviceAccountKey.json`.
+
+# 4. Desenvolvimento Simultâneo (Dois Terminais necessários)
+# Terminal 1: Inicia o Servidor Backend (API na porta 3001)
+cd backend && npm run dev
+
+# Terminal 2: Inicia o Frontend React (Porta 5173)
+npm run dev
+
 
 # 4. Deploy (apenas hosting)
 npm run deploy

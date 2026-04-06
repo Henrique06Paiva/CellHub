@@ -1,45 +1,22 @@
-import { db } from '../lib/firebase';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  getDoc, 
-  doc, 
-  setDoc, 
-  deleteDoc, 
-  orderBy, 
-  serverTimestamp 
-} from 'firebase/firestore';
+import api from '../api/axios';
 
 /**
- * Busca relatórios com base nas permissões e filtros
+ * Busca relatórios consolidados no backend
  */
 export const fetchReports = async (userData, filters = {}) => {
   try {
-    const role = userData?.role?.toLowerCase();
-    const isLeader = role === 'lider' || role === 'leader';
-    let q;
-
-    if (role === 'root') {
-      q = query(collection(db, 'reports'), orderBy('date', 'desc'));
-    } else if (role === 'discipulador' && userData?.networkId) {
-      q = query(collection(db, 'reports'), where('networkId', '==', userData.networkId), orderBy('date', 'desc'));
-    } else if (isLeader && userData?.cellId) {
-      q = query(collection(db, 'reports'), where('cellId', '==', userData.cellId), orderBy('date', 'desc'));
-    }
-
-    if (!q) return [];
-
-    // Aplicar filtros adicionais se necessário (ex: cellId específico)
-    if (filters.cellId) {
-      q = query(q, where('cellId', '==', filters.cellId));
-    }
-
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const params = new URLSearchParams();
+    
+    // Passamos como helpers para a API. Mas a API validará os auth claims nativamente.
+    if (userData?.role) params.append('role', userData.role);
+    if (userData?.networkId) params.append('networkId', userData.networkId);
+    if (userData?.cellId) params.append('cellId', userData.cellId);
+    if (filters.cellId) params.append('targetCellId', filters.cellId);
+    
+    const response = await api.get('/reports', { params });
+    return response.data;
   } catch (error) {
-    console.error("Erro ao buscar relatórios:", error);
+    console.error("Erro ao buscar relatórios da API:", error);
     throw error;
   }
 };
@@ -49,48 +26,34 @@ export const fetchReports = async (userData, filters = {}) => {
  */
 export const fetchReportById = async (id) => {
   try {
-    const snap = await getDoc(doc(db, 'reports', id));
-    if (snap.exists()) {
-      return { id: snap.id, ...snap.data() };
-    }
-    return null;
+    const response = await api.get(`/reports/${id}`);
+    return response.data;
   } catch (error) {
-    console.error("Erro ao buscar relatório:", error);
+    if (error.response?.status === 404) return null;
+    console.error("Erro ao buscar relatório da API:", error);
     throw error;
   }
 };
 
 /**
- * Salva um relatório (Criação ou Atualização)
+ * Salva um relatório
  */
 export const saveReport = async (id, data) => {
   try {
-    let reportId = id;
-    if (!reportId) {
-      const docRef = doc(collection(db, 'reports'));
-      reportId = docRef.id;
+    let response;
+    
+    // A limpeza de undefineds já acontece no front ou no back
+    // Axios limpa alguns undefined automáticos em JSON.stringify
+    
+    if (id) {
+       response = await api.put(`/reports/${id}`, data);
+    } else {
+       response = await api.post(`/reports`, data);
     }
-
-    const reportData = {
-      ...data,
-      updatedAt: serverTimestamp()
-    };
-
-    // Remover propriedades undefined que quebram o Firestore
-    Object.keys(reportData).forEach(key => {
-      if (reportData[key] === undefined) {
-        delete reportData[key];
-      }
-    });
-
-    if (!id) {
-      reportData.createdAt = serverTimestamp();
-    }
-
-    await setDoc(doc(db, 'reports', reportId), reportData, { merge: true });
-    return { id: reportId, ...reportData };
+    
+    return response.data;
   } catch (error) {
-    console.error("Erro ao salvar relatório:", error);
+    console.error("Erro ao salvar relatório na API:", error);
     throw error;
   }
 };
@@ -100,9 +63,10 @@ export const saveReport = async (id, data) => {
  */
 export const deleteReport = async (id) => {
   try {
-    await deleteDoc(doc(db, 'reports', id));
+    const response = await api.delete(`/reports/${id}`);
+    return response.data;
   } catch (error) {
-    console.error("Erro ao excluir relatório:", error);
+    console.error("Erro ao excluir relatório na API:", error);
     throw error;
   }
 };

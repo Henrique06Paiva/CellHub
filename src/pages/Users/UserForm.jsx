@@ -193,7 +193,7 @@ const UserForm = () => {
             <h3 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--primary-color)', fontWeight: '800', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
               <User size={14} /> Identificação Principal
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <div className="grid-responsive" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Nome Completo <span style={{ color: 'var(--danger-color)' }}>*</span></label>
                 <input type="text" style={{ width: '100%', border: `1px solid ${errBorder('name')}`, borderRadius: '6px', padding: '0.65rem 1rem', boxShadow: fieldErrors.name ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : 'none' }} value={formData.name} onChange={e => { setFormData({...formData, name: e.target.value}); clearFieldError('name'); }} placeholder="Ex: João da Silva" />
@@ -226,7 +226,7 @@ const UserForm = () => {
             <h3 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--primary-color)', fontWeight: '800', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
               <Shield size={14} /> Permissões no Sistema
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: id ? '1fr 1fr 1fr' : '1fr 1fr', gap: '1.5rem' }}>
+            <div className="grid-responsive" style={{ display: 'grid', gridTemplateColumns: id ? '1fr 1fr 1fr' : '1fr 1fr', gap: '1.5rem' }}>
               {id && (
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Status da Conta</label>
@@ -271,7 +271,7 @@ const UserForm = () => {
             <h3 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--primary-color)', fontWeight: '800', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
               <MapPin size={14} /> Dados Adicionais
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <div className="grid-responsive" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Idade</label>
                 <div style={{ position: 'relative' }}>
