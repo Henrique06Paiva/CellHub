@@ -92,7 +92,9 @@ const DashboardLayout = () => {
            {/* PAINEL ADMIN (ROOT ONLY) */}
            {userData?.role?.toLowerCase() === 'root' && (
              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.5rem', paddingLeft: isSidebarOpen ? '0.5rem' : '0' }}>Admin</div>
+                {isSidebarOpen && (
+                  <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.5rem', paddingLeft: '0.5rem' }}>Admin</div>
+                )}
                 <NavLink to="/admin/networks" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Redes">
                   <Globe size={20} style={{ flexShrink: 0 }} />
                   {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Redes</span>}
@@ -107,7 +109,9 @@ const DashboardLayout = () => {
            {/* PAINEL DISCIPULADOR */}
            {userData?.role?.toLowerCase() === 'discipulador' && (
              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.5rem', paddingLeft: isSidebarOpen ? '0.5rem' : '0' }}>Supervisão</div>
+                {isSidebarOpen && (
+                  <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.5rem', paddingLeft: '0.5rem' }}>Supervisão</div>
+                )}
                 <NavLink to="/admin/cells" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Células">
                   <ShieldCheck size={20} style={{ flexShrink: 0 }} />
                   {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Células</span>}
@@ -122,7 +126,9 @@ const DashboardLayout = () => {
            {/* PAINEL LÍDER / MEMBRO */}
            {(['lider', 'leader', 'membro', 'member'].includes(userData?.role?.toLowerCase())) && (
              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.5rem', paddingLeft: isSidebarOpen ? '0.5rem' : '0' }}>Operacional</div>
+                {isSidebarOpen && (
+                  <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '0.5rem', paddingLeft: '0.5rem' }}>Operacional</div>
+                )}
                 <NavLink to="/my-cell" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Minha Célula">
                   <Home size={20} style={{ flexShrink: 0 }} />
                   {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Minha Célula</span>}
@@ -139,7 +145,9 @@ const DashboardLayout = () => {
 
            {/* FERRAMENTAS COMUNS */}
            <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: isSidebarOpen ? '0.5rem' : '0' }}>Sistema</div>
+              {isSidebarOpen && (
+                <div style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: '0.5rem' }}>Sistema</div>
+              )}
               
               {['root', 'discipulador', 'lider', 'leader'].includes(userData?.role?.toLowerCase()) && (
                 <NavLink to="/users" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Usuários">

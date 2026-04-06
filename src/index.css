@@ -246,12 +246,38 @@ h3 {
 .app-dashboard {
   flex: 1;
   display: flex;
+  flex-direction: row; /* FIX: Sidebar na esquerda, Main na direita */
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  z-index: 10;
+  min-width: 0;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
   position: relative;
   z-index: 10;
   min-width: 0;
+}
+
+.top-header {
+  height: 70px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  z-index: 20;
+  flex-shrink: 0;
 }
 
 .app-sidebar {
