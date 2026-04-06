@@ -219,7 +219,7 @@ const Login = () => {
                   type="email" 
                   placeholder="seu@email.com"
                   value={email}
-                  onChange={(e) => { setEmail(e.target.value.replace(/\s/g, '')); setEmailError(''); }}
+                  onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
                   style={{
                     width: '100%', padding: '0.85rem 1rem 0.85rem 2.8rem', background: '#0f172a',
                     border: `1px solid ${emailError ? '#ef4444' : 'rgba(255,255,255,0.05)'}`, 
@@ -260,6 +260,8 @@ const Login = () => {
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Esconder senha" : "Mostrar senha"}
+                    title={showPassword ? "Esconder senha" : "Mostrar senha"}
                     style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '1rem', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
