@@ -349,3 +349,59 @@ h3 {
      padding: 1.2rem;
   }
 }
+
+/* =========================================================================
+   Login Page Responsiveness
+========================================================================== */
+.login-split {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background-color: #090e17;
+  overflow: hidden;
+  color: #f8fafc;
+}
+
+.login-form-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 10;
+  background-color: #090e17;
+  box-shadow: 15px 0 50px rgba(0,0,0,0.5);
+  max-width: 550px;
+  overflow-y: auto;
+}
+
+.login-info-side {
+  flex: 1.2;
+  position: relative;
+  background-color: #040b16;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4rem 6rem;
+  overflow: hidden;
+}
+
+@media (max-width: 1024px) {
+  .login-info-side {
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-split {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .login-form-side {
+    max-width: 100%;
+    box-shadow: none;
+    overflow-y: visible;
+  }
+  .login-info-side {
+    display: none; /* Hide info panel on mobile */
+  }
+}

@@ -152,27 +152,10 @@ const Login = () => {
   };
 
   return (
-    <div style={{ 
-      display: 'flex',
-      height: '100vh',
-      width: '100%',
-      background: '#090e17', // Very dark slate/navy
-      overflow: 'hidden',
-      color: '#f8fafc'
-    }}>
+    <div className="login-split">
       
       {/* LEFT SIDE: Form container */}
-      <div style={{
-        flex: '1',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        zIndex: 10,
-        backgroundColor: '#090e17',
-        boxShadow: '15px 0 50px rgba(0,0,0,0.5)',
-        maxWidth: '550px',
-        overflowY: 'auto'
-      }}>
+      <div className="login-form-side">
         <div style={{ 
           flex: 1, 
           display: 'flex', 
@@ -369,17 +352,7 @@ const Login = () => {
       </div>
 
       {/* RIGHT SIDE: Info panel */}
-      <div style={{
-        hidden: window.innerWidth < 768, // This is just a hint, we use media queries in real CSS but inline style is ok for now. Let's make it display:none on mobile via CSS but standard is fine
-        flex: '1.2',
-        position: 'relative',
-        background: '#040b16', // Slightly darker backdrop
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '4rem 6rem',
-        overflow: 'hidden'
-      }}>
+      <div className="login-info-side">
         {/* Abstract Background Elements */}
         {/* Subtle grid pattern using CSS */}
         <div style={{ 
