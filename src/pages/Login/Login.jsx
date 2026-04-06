@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
+import axios from 'axios';
 import { Mail, Lock, AlertCircle, ArrowRight, CheckCircle2, KeyRound, Users, Zap, Eye, EyeOff,  BarChart } from 'lucide-react';
 
 const FeatureItem = ({ icon: Icon, title, desc }) => (
@@ -90,6 +91,18 @@ const Login = () => {
       const cleanEmail = email.trim();
 
       if (isForgotPassword) {
+        // SEGURANÇA: Verifica se o email está cadastrado no sistema via backend
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+        const verifyResponse = await axios.post(`${apiUrl}/auth/request-password-reset`, { 
+          email: cleanEmail 
+        });
+
+        if (!verifyResponse.data.success) {
+          setAuthError('Nenhuma conta encontrada com este e-mail.');
+          setLoading(false);
+          return;
+        }
+
         await sendPasswordResetEmail(auth, cleanEmail);
         setSuccessMessage('E-mail de redefinição de senha enviado! Verifique sua caixa de entrada (e o spam).');
         setAuthError('');
@@ -102,18 +115,27 @@ const Login = () => {
       console.error('Erro de Autenticação:', err);
       
       if (isForgotPassword) {
-        switch (err.code) {
-          case 'auth/user-not-found':
-            setAuthError('Nenhuma conta encontrada com este e-mail.');
-            break;
-          case 'auth/invalid-email':
-            setAuthError('O endereço de e-mail fornecido não é válido.');
-            break;
-          case 'auth/too-many-requests':
-            setAuthError('Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.');
-            break;
-          default:
-            setAuthError('Não foi possível enviar o e-mail. Tente novamente mais tarde.');
+        // Trata erros do backend (Axios) e do Firebase Auth
+        if (err.response) {
+          // Erro HTTP do backend (ex: 404 = email não cadastrado)
+          setAuthError(err.response.data?.error || 'Nenhuma conta encontrada com este e-mail.');
+        } else if (err.code) {
+          // Erro do Firebase Auth
+          switch (err.code) {
+            case 'auth/user-not-found':
+              setAuthError('Nenhuma conta encontrada com este e-mail.');
+              break;
+            case 'auth/invalid-email':
+              setAuthError('O endereço de e-mail fornecido não é válido.');
+              break;
+            case 'auth/too-many-requests':
+              setAuthError('Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.');
+              break;
+            default:
+              setAuthError('Não foi possível enviar o e-mail. Tente novamente mais tarde.');
+          }
+        } else {
+          setAuthError('Não foi possível enviar o e-mail. Tente novamente mais tarde.');
         }
       } else {
         switch (err.code) {

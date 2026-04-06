@@ -16,6 +16,7 @@ import userRoutes from './routes/userRoutes.js';
 import cellRoutes from './routes/cellRoutes.js';
 import networkRoutes from './routes/networkRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 // Middlewares Globais de Segurança (Helmet OCULTA informações do servidor pra hackers)
 app.use(helmet());
@@ -34,6 +35,7 @@ app.use(cors());
 app.use(express.json());
 
 // Apply Routes
+app.use('/api/auth', authRoutes); // Rotas públicas de autenticação (reset senha)
 app.use('/api/users', userRoutes);
 app.use('/api/cells', cellRoutes);
 app.use('/api/networks', networkRoutes);

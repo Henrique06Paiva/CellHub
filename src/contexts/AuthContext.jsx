@@ -93,20 +93,26 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setCurrentUser(user);
         try {
           // Busca os dados adicionais com o RBAC do Firestore
           const userDocRef = doc(db, "users", user.uid);
           const userDocSnap = await getDoc(userDocRef);
           
           if (userDocSnap.exists()) {
+            setCurrentUser(user);
             setUserData(userDocSnap.data());
           } else {
-            console.error("Documento do usuário não encontrado no Firestore.");
+            // SEGURANÇA: Usuário autenticado no Firebase Auth mas sem cadastro no Firestore.
+            // Isso pode acontecer se alguém solicitar reset de senha com email não cadastrado.
+            // O Firebase Auth cria a conta implicitamente, mas ela não é válida no nosso sistema.
+            console.warn("Conta sem cadastro no sistema. Forçando logout por segurança.");
+            await signOut(auth);
+            setCurrentUser(null);
             setUserData(null);
           }
         } catch (error) {
           console.error("Erro ao buscar dados do usuário:", error);
+          setCurrentUser(null);
           setUserData(null);
         }
       } else {
