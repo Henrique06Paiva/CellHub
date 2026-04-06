@@ -140,7 +140,11 @@ const UserForm = () => {
       }
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
-        notify('error', 'Este e-mail já está em uso em outra conta.');
+        setFieldErrors(prev => ({ ...prev, email: 'Este e-mail já está cadastrado no sistema.' }));
+        notify('error', 'Este e-mail já está em uso por outra conta.');
+      } else if (err.code === 'auth/invalid-email') {
+        setFieldErrors(prev => ({ ...prev, email: 'E-mail inválido.' }));
+        notify('error', 'O endereço de e-mail informado não é válido.');
       } else {
         notify('error', 'Erro ao processar: ' + err.message);
       }

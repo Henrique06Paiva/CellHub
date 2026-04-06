@@ -149,7 +149,21 @@ const NetworkForm = () => {
         if (formData.newAge) newUserPayload.age = formData.newAge;
         if (formData.newCep) newUserPayload.cep = formData.newCep;
 
-        finalDisciplerId = await registerUserFromAdmin(newUserPayload);
+        try {
+          finalDisciplerId = await registerUserFromAdmin(newUserPayload);
+        } catch (authErr) {
+          // Trata erros específicos da criação de usuário
+          if (authErr.code === 'auth/email-already-in-use') {
+            setFieldErrors(prev => ({ ...prev, newEmail: 'Este e-mail já está cadastrado no sistema.' }));
+            notify('error', 'Este e-mail já está em uso. Use a aba "Usuário Existente" ou informe outro e-mail.');
+          } else if (authErr.code === 'auth/invalid-email') {
+            setFieldErrors(prev => ({ ...prev, newEmail: 'E-mail inválido.' }));
+            notify('error', 'O endereço de e-mail informado não é válido.');
+          } else {
+            notify('error', 'Erro ao criar o discipulador: ' + (authErr.message || 'Erro desconhecido.'));
+          }
+          return; // Interrompe sem salvar a rede
+        }
       }
 
       // 2. Salvar Rede via Serviço
@@ -165,7 +179,7 @@ const NetworkForm = () => {
       setTimeout(() => navigate('/admin/networks'), 1000);
     } catch (err) {
       console.error(err);
-      notify('error', "Erro ao salvar: " + err.message);
+      notify('error', "Erro ao salvar a rede: " + err.message);
     } finally {
       hideLoader();
       setLoading(false);

@@ -11,7 +11,7 @@ export const getUsers = async (req, res) => {
     const { role, networkId } = req.query;
 
     let usersRef = db.collection('users');
-    let query = usersRef.orderBy('name');
+    let query = usersRef;
 
     if (role) {
       if (Array.isArray(role)) {
@@ -25,13 +25,19 @@ export const getUsers = async (req, res) => {
       query = query.where('networkId', '==', networkId);
     }
 
+    // O orderBy só funciona se todos os docs têm o campo 'name'.
+    // Filtramos o root_setup_flag (que é um doc de controle, não um usuário).
+    query = query.orderBy('name');
+
     const snapshot = await query.get();
-    const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const users = snapshot.docs
+      .filter(doc => doc.id !== 'root_setup_flag') // Exclui o doc de controle
+      .map(doc => ({ id: doc.id, ...doc.data() }));
 
     return res.status(200).json(users);
   } catch (error) {
     console.error("Erro em getUsers:", error);
-    return res.status(500).json({ error: 'Erro Interno ao buscar usuários.' });
+    return res.status(500).json({ error: 'Erro Interno ao buscar usuários.', details: error.message });
   }
 };
 

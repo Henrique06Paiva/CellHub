@@ -162,7 +162,20 @@ const CellAdminForm = () => {
         if (formData.newLeaderAge) newUserPayload.age = formData.newLeaderAge;
         if (formData.newLeaderCep) newUserPayload.cep = formData.newLeaderCep;
 
-        finalLeaderId = await registerUserFromAdmin(newUserPayload);
+        try {
+          finalLeaderId = await registerUserFromAdmin(newUserPayload);
+        } catch (authErr) {
+          if (authErr.code === 'auth/email-already-in-use') {
+            setFieldErrors(prev => ({ ...prev, newLeaderEmail: 'Este e-mail já está cadastrado no sistema.' }));
+            notify('error', 'Este e-mail já está em uso. Use a aba "Vincular Existente" ou informe outro e-mail.');
+          } else if (authErr.code === 'auth/invalid-email') {
+            setFieldErrors(prev => ({ ...prev, newLeaderEmail: 'E-mail inválido.' }));
+            notify('error', 'O endereço de e-mail informado não é válido.');
+          } else {
+            notify('error', 'Erro ao criar o líder: ' + (authErr.message || 'Erro desconhecido.'));
+          }
+          return;
+        }
         finalLeaderName = formData.newLeaderName;
       } else if (formData.leaderType === 'existing') {
         const selUser = users.find(u => u.id === formData.leaderId);

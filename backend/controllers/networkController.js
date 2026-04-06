@@ -40,6 +40,13 @@ export const createOrUpdateNetwork = async (req, res) => {
     try {
       const { id } = req.params;
       const data = req.body;
+
+      // Sanitiza: remove campos undefined que o Firestore rejeita
+      Object.keys(data).forEach(key => {
+        if (data[key] === undefined) {
+          delete data[key];
+        }
+      });
       
       let netId = id && id !== 'new' ? id : null;
       
@@ -56,7 +63,8 @@ export const createOrUpdateNetwork = async (req, res) => {
       return res.status(200).json({ id: netId, ...data });
     } catch (error) {
       console.error("Erro em createOrUpdateNetwork:", error);
-      return res.status(500).json({ error: 'Erro ao salvar rede.' });
+      console.error("Body recebido:", JSON.stringify(req.body, null, 2));
+      return res.status(500).json({ error: 'Erro ao salvar rede.', details: error.message });
     }
 };
 
