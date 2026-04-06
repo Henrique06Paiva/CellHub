@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+serviceAccountKey.json
+base64-key-for-render.txt
+.env
+dist/
