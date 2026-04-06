@@ -24,6 +24,8 @@ const UserManagement = () => {
     showLoader(`Excluindo usuário ${userToDelete.name}...`);
     try {
       await deleteUser(userToDelete.id);
+      // Remove o usuário da lista local para atualizar a UI instantaneamente
+      setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
       setUserToDelete(null);
       notify('success', 'Usuário excluído com sucesso.');
     } catch (err) {

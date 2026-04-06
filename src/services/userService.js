@@ -6,11 +6,18 @@ import api from '../api/axios';
 export const fetchUsers = async (filters = {}) => {
   try {
     const params = new URLSearchParams();
-    if (filters.role) params.append('role', filters.role);
+    
+    // Serializa arrays como params repetidos (role=a&role=b) para que Express parse como array
+    if (filters.role) {
+      if (Array.isArray(filters.role)) {
+        filters.role.forEach(r => params.append('role', r));
+      } else {
+        params.append('role', filters.role);
+      }
+    }
     if (filters.networkId) params.append('networkId', filters.networkId);
     
-    // axios serializa params automaticamente se passarmos o objeto
-    const response = await api.get('/users', { params: filters });
+    const response = await api.get('/users', { params });
     return response.data;
   } catch (error) {
     console.error("Erro ao buscar usuários da API:", error);
