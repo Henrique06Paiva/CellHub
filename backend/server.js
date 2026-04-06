@@ -8,6 +8,10 @@ dotenv.config();
 // Initialize express
 const app = express();
 
+// Necessário quando rodando atrás de um reverse proxy (Render, Railway, etc.)
+// Sem isso, o express-rate-limit crasheia com ERR_ERL_UNEXPECTED_X_FORWARDED_FOR
+app.set('trust proxy', 1);
+
 // Segurança Hardening
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
