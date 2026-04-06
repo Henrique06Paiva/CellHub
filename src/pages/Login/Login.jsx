@@ -24,9 +24,17 @@ const FeatureItem = ({ icon: Icon, title, desc }) => (
 );
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, currentUser, userData } = useAuth();
   const navigate = useNavigate();
   
+  React.useEffect(() => {
+    // Escuta o status do contexto de autenticação para navegar
+    // Garantindo que não haverá redirect precoce antes do Firebase trazer o UserData!
+    if (currentUser && userData) {
+      navigate('/');
+    }
+  }, [currentUser, userData, navigate]);
+
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -87,7 +95,8 @@ const Login = () => {
         setAuthError('');
       } else {
         await login(cleanEmail, password);
-        navigate('/');
+        // Não usamos navigate('/') aqui.
+        // O useEffect no top do componente disparará assim que o AuthContext preencher o userData.
       }
     } catch (err) {
       console.error('Erro de Autenticação:', err);
