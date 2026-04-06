@@ -173,7 +173,16 @@ const UserManagement = () => {
                         </div>
                       </td>
                       <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                        {user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
+                        {user.createdAt 
+                          ? (() => {
+                              const ts = user.createdAt;
+                              // Admin SDK: { _seconds } | Client SDK: { seconds } | ISO string | Date
+                              const date = ts._seconds ? new Date(ts._seconds * 1000) 
+                                         : ts.seconds ? new Date(ts.seconds * 1000)
+                                         : new Date(ts);
+                              return isNaN(date) ? '-' : date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+                            })()
+                          : '-'}
                       </td>
                       <td style={{ padding: '1rem', fontSize: '0.875rem', fontWeight: '500', color: user.status === 'inativo' ? '#ef4444' : user.status === 'bloqueado' ? '#f59e0b' : '#10b981' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
