@@ -116,7 +116,7 @@ const DashboardLayout = () => {
                   <ShieldCheck size={20} style={{ flexShrink: 0 }} />
                   {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Células</span>}
                 </NavLink>
-                <NavLink to="/network" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Visão da Rede">
+                <NavLink to="/network" end className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Visão da Rede">
                   <Network size={20} style={{ flexShrink: 0 }} />
                   {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Visão da Rede</span>}
                 </NavLink>
