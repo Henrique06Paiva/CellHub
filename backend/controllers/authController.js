@@ -54,11 +54,23 @@ export const requestPasswordReset = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Erro ao processar reset de senha:', error);
+    // Log detalhado para diagnóstico nos logs do Render
+    console.error('❌ Erro ao processar reset de senha:');
+    console.error('  Mensagem:', error.message);
+    console.error('  Código:', error.code || '(sem código)');
+    console.error('  Stack:', error.stack);
 
     // Evita enviar detalhes internos ao cliente
     if (error.code === 'auth/user-not-found') {
       return res.status(404).json({ error: 'Nenhuma conta encontrada com este e-mail.' });
+    }
+
+    // Identifica problemas de configuração específicos
+    if (error.message?.includes('Invalid login') || error.message?.includes('Username and Password')) {
+      console.error('  ⚠️  CAUSA PROVÁVEL: GMAIL_USER ou GMAIL_PASS incorretos ou App Password não configurado.');
+    }
+    if (!auth) {
+      console.error('  ⚠️  CAUSA PROVÁVEL: Firebase Admin SDK não inicializado (auth é null). Verifique FIREBASE_SERVICE_ACCOUNT no Render.');
     }
 
     return res.status(500).json({ error: 'Erro interno ao processar a solicitação.' });
