@@ -19,6 +19,7 @@ const CellView = React.lazy(() => import('./pages/Member/CellView'));
 // ... (outros imports lazy que já existem)
 const CellManagement = React.lazy(() => import('./pages/Leader/CellManagement'));
 const NetworkView = React.lazy(() => import('./pages/Discipler/NetworkView'));
+const ReportsDashboard = React.lazy(() => import('./pages/Discipler/ReportsDashboard'));
 const UserManagement = React.lazy(() => import('./pages/Users/UserManagement'));
 const UserForm = React.lazy(() => import('./pages/Users/UserForm'));
 const UserDetails = React.lazy(() => import('./pages/Users/UserDetails'));
@@ -156,6 +157,12 @@ function App() {
                 <Route path="/network" element={
                   <ProtectedRoute allowedRoles={['discipulador', 'root']}>
                     <NetworkView />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/network/dashboard" element={
+                  <ProtectedRoute allowedRoles={['discipulador', 'root']}>
+                    <ReportsDashboard />
                   </ProtectedRoute>
                 } />
 

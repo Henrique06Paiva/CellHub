@@ -120,6 +120,10 @@ const DashboardLayout = () => {
                   <Network size={20} style={{ flexShrink: 0 }} />
                   {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Visão da Rede</span>}
                 </NavLink>
+                <NavLink to="/network/dashboard" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Dashboard Analítico">
+                  <BarChart3 size={20} style={{ flexShrink: 0 }} />
+                  {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Dashboard Analítico</span>}
+                </NavLink>
              </div>
            )}
 

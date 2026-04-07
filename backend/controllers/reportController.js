@@ -27,6 +27,10 @@ export const getReports = async (req, res) => {
       q = q.where('cellId', '==', req.query.targetCellId);
     }
 
+    if (req.query.startDate) {
+      q = q.where('date', '>=', req.query.startDate);
+    }
+
     const snapshot = await q.get();
     const reports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 

@@ -9,6 +9,7 @@ export const fetchReports = async (userData, filters = {}) => {
     
     // A API agora detecta tudo via Firebase Auth (req.user no middleware)
     if (filters.cellId) params.append('targetCellId', filters.cellId);
+    if (filters.startDate) params.append('startDate', filters.startDate);
     
     const response = await api.get('/reports', { params });
     return response.data;
