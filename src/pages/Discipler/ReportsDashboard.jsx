@@ -100,7 +100,11 @@ const ReportsDashboard = () => {
   }, [filteredReports]);
 
   const cellSummaries = useMemo(() => {
-    return cells.map(cell => {
+    const filteredCells = selectedCellId === 'all' 
+      ? cells 
+      : cells.filter(c => c.id === selectedCellId);
+
+    return filteredCells.map(cell => {
       const cellReports = reports.filter(r => r.cellId === cell.id);
       if (cellReports.length === 0) return { ...cell, reportsCount: 0, avgPresence: 0, totalVisitors: 0 };
 
@@ -117,7 +121,7 @@ const ReportsDashboard = () => {
         totalVisitors: totalVs
       };
     }).sort((a, b) => b.avgPresence - a.avgPresence);
-  }, [cells, reports]);
+  }, [cells, reports, selectedCellId]);
 
   const handleExportExcel = async () => {
     notify('info', 'Preparando Excel...');
@@ -230,7 +234,7 @@ const ReportsDashboard = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '240px', position: 'relative' }}>
-            <Home size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '1rem', zIndex: 1 }} />
+            <Home size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '1rem', zIndex: 1, pointerEvents: 'none' }} />
             <select 
               value={selectedCellId} 
               onChange={e => setSelectedCellId(e.target.value)}
@@ -239,7 +243,7 @@ const ReportsDashboard = () => {
                 background: 'var(--surface-color)', 
                 border: '1px solid var(--border-color)', 
                 borderRadius: '10px', 
-                padding: '0.6rem 1rem 0.6rem 2.5rem', 
+                padding: '0.6rem 2.5rem 0.6rem 2.5rem', 
                 color: 'var(--text-main)', 
                 fontWeight: '600',
                 fontSize: '0.9rem',
@@ -250,7 +254,7 @@ const ReportsDashboard = () => {
             >
               <option value="all">Todas as Células (Geral da Rede)</option>
               {cells.map(c => (
-                <option key={c.id} value={c.id} style={{ background: 'var(--surface-color)', color: 'var(--text-main)' }}>{c.name}</option>
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
             <ChevronDown size={16} color="var(--text-muted)" style={{ position: 'absolute', right: '1rem', pointerEvents: 'none' }} />
