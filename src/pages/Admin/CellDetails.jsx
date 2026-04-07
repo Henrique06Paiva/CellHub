@@ -20,11 +20,17 @@ const CellAdminDetails = () => {
   useEffect(() => {
     const loadCellDetails = async () => {
       try {
-        const [cellData, membersList, reportsList] = await Promise.all([
+        const [cellData, membersList] = await Promise.all([
           fetchCellById(id),
-          fetchUsers({ cellId: id }),
-          fetchReports(userData, { cellId: id })
+          fetchUsers({ cellId: id })
         ]);
+
+        let reportsList = [];
+        try {
+           reportsList = await fetchReports(userData, { cellId: id });
+        } catch (rErr) {
+           console.warn("Sem permissão ou erro ao buscar relatórios desta célula.", rErr);
+        }
 
         if (cellData) {
           setCell(cellData);

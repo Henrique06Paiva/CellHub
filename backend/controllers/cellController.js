@@ -5,17 +5,26 @@ import { db, auth } from '../config/firebaseConfig.js';
 
 export const getCells = async (req, res) => {
   try {
-    const { role, networkId } = req.user; // Se vier no token, ou recebemos na query
-    const userRole = req.query.role || 'root'; 
-    const reqNetworkId = req.query.networkId;
+    const { role, networkId, cellId } = req.user;
+    const userRole = role || 'membro';
+    const isLeader = userRole === 'lider' || userRole === 'leader';
+    const userNetworkId = networkId;
+    const userCellId = cellId;
 
     let q = db.collection('cells').orderBy('name');
 
-    if (userRole === 'discipulador' && reqNetworkId) {
-       q = q.where('networkId', '==', reqNetworkId);
+    if (userRole === 'root') {
+      // root traz todas
+    } else if (userRole === 'discipulador' && userNetworkId) {
+       q = q.where('networkId', '==', userNetworkId);
+    } else if (isLeader && userCellId) {
+       // lider virtualmente não precisaria ver outras células, ou talvez dependa da regra de negócio
+       // vamos trazer só a dele
+       q = q.where('__name__', '==', userCellId);
+    } else {
+       // membro não vê lista inteira de células ou não tem acesso 
+       return res.status(403).json({ error: 'Acesso negado às células.' });
     }
-    
-    // root traz todas
 
     const snapshot = await q.get();
     const cells = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -30,13 +39,36 @@ export const getCells = async (req, res) => {
 export const getCellById = async (req, res) => {
     try {
       const { id } = req.params;
+      const { role, networkId, cellId } = req.user;
+      
       const docRef = await db.collection('cells').doc(id).get();
       
       if (!docRef.exists) {
         return res.status(404).json({ error: 'Célula não encontrada.' });
       }
+
+      const cellData = { id: docRef.id, ...docRef.data() };
+
+      // RBAC: Verificação se tem acesso
+      const userRole = role || 'membro';
+      const isLeader = userRole === 'lider' || userRole === 'leader';
+
+      if (userRole === 'root') {
+        // Ok
+      } else if (userRole === 'discipulador') {
+         if (networkId && cellData.networkId !== networkId) {
+             console.warn(`Discipulador da rede ${networkId} tentou acessar célula da rede ${cellData.networkId}`);
+             return res.status(403).json({ error: 'Acesso negado a esta célula.' });
+         }
+      } else if (isLeader) {
+         if (cellId && cellData.id !== cellId) {
+             return res.status(403).json({ error: 'Acesso negado a esta célula.' });
+         }
+      } else {
+         return res.status(403).json({ error: 'Privilégios insuficientes.' });
+      }
       
-      return res.status(200).json({ id: docRef.id, ...docRef.data() });
+      return res.status(200).json(cellData);
     } catch (error) {
       console.error("Erro em getCellById:", error);
       return res.status(500).json({ error: 'Erro Interno.' });

@@ -7,10 +7,7 @@ export const fetchReports = async (userData, filters = {}) => {
   try {
     const params = new URLSearchParams();
     
-    // Passamos como helpers para a API. Mas a API validará os auth claims nativamente.
-    if (userData?.role) params.append('role', userData.role);
-    if (userData?.networkId) params.append('networkId', userData.networkId);
-    if (userData?.cellId) params.append('cellId', userData.cellId);
+    // A API agora detecta tudo via Firebase Auth (req.user no middleware)
     if (filters.cellId) params.append('targetCellId', filters.cellId);
     
     const response = await api.get('/reports', { params });

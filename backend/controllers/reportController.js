@@ -3,13 +3,12 @@ import { db } from '../config/firebaseConfig.js';
 export const getReports = async (req, res) => {
   try {
     const { role, networkId, cellId } = req.user; 
-    // Assumindo que num SaaS essas informações vêm injetadas no Custom Token (Claims)
-    // ou passaremos nos headers/queries. Vamos pegar via query params + token fallback
     
-    const userRole = req.query.role || role || 'root';
+    // Agora o authMiddleware fornece 100% de confiança
+    const userRole = role || 'membro';
     const isLeader = userRole === 'lider' || userRole === 'leader';
-    const userNetworkId = req.query.networkId || networkId;
-    const userCellId = req.query.cellId || cellId;
+    const userNetworkId = networkId;
+    const userCellId = cellId;
 
     let q = db.collection('reports').orderBy('date', 'desc');
 
@@ -20,6 +19,7 @@ export const getReports = async (req, res) => {
     } else if (isLeader && userCellId) {
       q = q.where('cellId', '==', userCellId);
     } else {
+      console.warn(`Acesso negado aos relatórios: role=${userRole}, networkId=${userNetworkId}, cellId=${userCellId}`);
       return res.status(403).json({ error: 'Acesso negado ou credenciais incompletas.' });
     }
 
