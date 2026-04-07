@@ -60,6 +60,15 @@ export const createOrUpdateNetwork = async (req, res) => {
 
       await db.collection('networks').doc(netId).set(data, { merge: true });
 
+      // Sincroniza o perfil do usuário Discipulador
+      if (data.disciplerId) {
+          await db.collection('users').doc(data.disciplerId).update({
+              role: 'discipulador',
+              networkId: netId,
+              networkName: data.name
+          });
+      }
+
       return res.status(200).json({ id: netId, ...data });
     } catch (error) {
       console.error("Erro em createOrUpdateNetwork:", error);
