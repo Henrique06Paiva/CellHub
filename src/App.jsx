@@ -11,6 +11,9 @@ import ToastContainer from './components/Common/ToastContainer';
 import Login from './pages/Login/Login';
 import DashboardLayout from './components/Layout/DashboardLayout';
 
+// Public Auth Pages
+const ResetPassword = React.lazy(() => import('./pages/Login/ResetPassword'));
+
 // Target Pages (Lazy-loaded for better runtime performance)
 const CellView = React.lazy(() => import('./pages/Member/CellView'));
 // ... (outros imports lazy que já existem)
@@ -94,6 +97,7 @@ function App() {
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               
               <Route element={<DashboardLayout />}>
                 <Route path="/" element={<DashboardRouter />} />

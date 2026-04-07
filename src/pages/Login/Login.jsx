@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
 import axios from 'axios';
-import { Mail, Lock, AlertCircle, ArrowRight, CheckCircle2, KeyRound, Users, Zap, Eye, EyeOff,  BarChart } from 'lucide-react';
+import { Mail, Lock, AlertCircle, ArrowRight, CheckCircle2, KeyRound, Users, Zap, Eye, EyeOff, BarChart } from 'lucide-react';
 
 const FeatureItem = ({ icon: Icon, title, desc }) => (
   <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }} className="animate-fade-in">
@@ -91,20 +89,10 @@ const Login = () => {
       const cleanEmail = email.trim();
 
       if (isForgotPassword) {
-        // SEGURANÇA: Verifica se o email está cadastrado no sistema via backend
+        // O backend verifica o email, gera o link e envia o email HTML completo
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-        const verifyResponse = await axios.post(`${apiUrl}/auth/request-password-reset`, { 
-          email: cleanEmail 
-        });
-
-        if (!verifyResponse.data.success) {
-          setAuthError('Nenhuma conta encontrada com este e-mail.');
-          setLoading(false);
-          return;
-        }
-
-        await sendPasswordResetEmail(auth, cleanEmail);
-        setSuccessMessage('E-mail de redefinição de senha enviado! Verifique sua caixa de entrada (e o spam).');
+        await axios.post(`${apiUrl}/auth/request-password-reset`, { email: cleanEmail });
+        setSuccessMessage('E-mail de redefinição enviado! Verifique sua caixa de entrada (e o spam).');
         setAuthError('');
       } else {
         await login(cleanEmail, password);
