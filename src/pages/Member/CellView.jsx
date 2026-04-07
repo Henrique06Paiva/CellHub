@@ -21,23 +21,22 @@ const CellView = () => {
         return;
       }
       try {
-        const cellData = await fetchCellById(userData.cellId);
-        if (cellData) {
-          setMyCell(cellData);
-          
-          if (cellData.leaderId) {
-            const leaderData = await fetchUserById(cellData.leaderId);
-            if (leaderData) setLeader(leaderData);
-          }
-        }
+        // Fase 1: busca cell, network e members em paralelo
+        const [cellData, networkData, membersList] = await Promise.all([
+          fetchCellById(userData.cellId),
+          userData?.networkId ? fetchNetworkById(userData.networkId) : Promise.resolve(null),
+          fetchUsers({ cellId: userData.cellId }),
+        ]);
 
-        if (userData?.networkId) {
-          const networkData = await fetchNetworkById(userData.networkId);
-          if (networkData) setMyNetwork(networkData);
-        }
+        if (cellData) setMyCell(cellData);
+        if (networkData) setMyNetwork(networkData);
+        setMembers(membersList || []);
 
-        const membersList = await fetchUsers({ cellId: userData.cellId });
-        setMembers(membersList);
+        // Fase 2: busca líder (depende do cellData.leaderId)
+        if (cellData?.leaderId) {
+          const leaderData = await fetchUserById(cellData.leaderId);
+          if (leaderData) setLeader(leaderData);
+        }
 
       } catch (err) {
         console.error("Erro ao carregar dados:", err);

@@ -172,9 +172,9 @@ const DashboardLayout = () => {
       {/* Main Content Area */}
       <div className="main-content">
         
-        {/* Background Orbs */}
-        <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: '40vw', height: '40vw', background: 'rgba(37, 99, 235, 0.05)', borderRadius: '50%', filter: 'blur(80px)', zIndex: 0, pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-20%', left: '-10%', width: '40vw', height: '40vw', background: 'rgba(16, 185, 129, 0.03)', borderRadius: '50%', filter: 'blur(100px)', zIndex: 0, pointerEvents: 'none' }} />
+        {/* Background Orbs — usa radial-gradient puro (sem filter:blur) para evitar overhead de GPU compositing */}
+        <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%)', borderRadius: '50%', zIndex: 0, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-20%', left: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(16, 185, 129, 0.04) 0%, transparent 70%)', borderRadius: '50%', zIndex: 0, pointerEvents: 'none' }} />
 
         {/* Top Header */}
         <header className="top-header">
@@ -268,7 +268,7 @@ const DashboardLayout = () => {
 
         {/* Scrollable Page Content */}
         <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '1.5rem', position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column' }}>
-          <div className="animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto', width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
             <Outlet />
           </div>
         </main>

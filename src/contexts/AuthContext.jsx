@@ -10,7 +10,6 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { initializeApp, getApp } from 'firebase/app';
 import { auth, db, firebaseConfig } from '../lib/firebase';
-import LoadingFallback from '../components/Common/LoadingFallback';
 
 const AuthContext = createContext();
 
@@ -136,7 +135,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {loading ? <LoadingFallback /> : children}
+      {children}
     </AuthContext.Provider>
   );
 }

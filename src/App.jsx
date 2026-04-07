@@ -40,7 +40,7 @@ const RouteChangeTracker = () => {
     startNavigation();
     const timeout = setTimeout(() => {
       stopNavigation();
-    }, 500); // Give it a slight visible duration
+    }, 150); // Reduzido: 500ms era perceptível como lentidão artificial
     return () => {
       clearTimeout(timeout);
       stopNavigation();

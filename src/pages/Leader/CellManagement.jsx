@@ -23,13 +23,15 @@ const CellManagement = () => {
         return;
       }
       try {
-        const cellData = await fetchCellById(userData.cellId);
-        if (cellData) setMyCell(cellData);
+        // Paralela: cell, membros e relatórios ao mesmo tempo
+        const [cellData, membersList, cellReports] = await Promise.all([
+          fetchCellById(userData.cellId),
+          fetchUsers({ cellId: userData.cellId }),
+          fetchReports(userData, { cellId: userData.cellId }),
+        ]);
 
-        const membersList = await fetchUsers({ cellId: userData.cellId });
-        setMembers(membersList);
-        
-        const cellReports = await fetchReports(userData, { cellId: userData.cellId });
+        if (cellData) setMyCell(cellData);
+        setMembers(membersList || []);
         setReportCount(cellReports.length);
 
         const lastReports = cellReports.slice(0, 4);
