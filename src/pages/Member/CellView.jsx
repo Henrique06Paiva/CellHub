@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { fetchCellById } from '../../services/cellService';
 import { fetchNetworkById } from '../../services/networkService';
 import { fetchUserById, fetchUsers } from '../../services/userService';
+import LoadingFallback from '../../components/Common/LoadingFallback';
 import { MapPin, Users as UsersIcon } from 'lucide-react';
 
 const CellView = () => {
@@ -47,7 +48,7 @@ const CellView = () => {
     if (userData) loadCellData();
   }, [userData]);
 
-  if (loading) return <div style={{ padding: '2rem' }}>Carregando dados da célula...</div>;
+  if (loading) return <LoadingFallback />;
   if (!myCell) return <div style={{ padding: '2rem' }}>Você não está vinculado a nenhuma célula. Verifique com a liderança.</div>;
 
   return (

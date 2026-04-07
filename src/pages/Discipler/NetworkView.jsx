@@ -5,6 +5,7 @@ import { fetchNetworks, fetchNetworkById } from '../../services/networkService';
 import { fetchCells } from '../../services/cellService';
 import { fetchUserById, fetchUsers } from '../../services/userService';
 import { fetchReports } from '../../services/reportService';
+import LoadingFallback from '../../components/Common/LoadingFallback';
 
 const NetworkView = () => {
   const { currentUser, userData } = useAuth();
@@ -84,7 +85,7 @@ const NetworkView = () => {
     if (currentUser) loadNetworkDataCombined();
   }, [currentUser, userData]);
 
-  if (loading) return <div style={{ padding: '2rem' }}>Carregando dados da rede...</div>;
+  if (loading) return <LoadingFallback />;
   if (!myNetwork) return <div style={{ padding: '2rem' }}>Você não possui explícitamente nenhuma rede vinculada ou os dados não foram encontrados.</div>;
 
   const totalMembers = Object.values(cellsMembersCount).reduce((acc, curr) => acc + curr, 0);

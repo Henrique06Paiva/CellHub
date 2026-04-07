@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { fetchCellById } from '../../services/cellService';
 import { fetchUsers } from '../../services/userService';
 import { fetchReports, saveReport } from '../../services/reportService';
+import LoadingFallback from '../../components/Common/LoadingFallback';
+import BackButton from '../../components/Common/BackButton';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { ArrowLeft, CalendarDays, Users, UserPlus, Camera, FileText, CheckCircle2, X, ImageIcon, Loader2 } from 'lucide-react';
@@ -278,13 +280,7 @@ const ReportForm = () => {
   };
 
   if (loading) {
-// ...
-
-    return (
-      <div style={{ height: 'calc(100vh - 5rem)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: 'var(--text-muted)' }}>Carregando dados da célula...</div>
-      </div>
-    );
+    return <LoadingFallback />;
   }
 
   if (!userData?.cellId || !cellData) {
@@ -321,14 +317,7 @@ const ReportForm = () => {
     <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '3rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '2.5rem' }}>
-        <button
-          onClick={() => navigate('/reports')}
-          style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--surface-color)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}
-          onMouseOver={e => e.currentTarget.style.background = 'var(--surface-hover)'}
-          onMouseOut={e => e.currentTarget.style.background = 'var(--surface-color)'}
-        >
-          <ArrowLeft size={20} color="var(--text-muted)" />
-        </button>
+        <BackButton to="/reports" />
         <div>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-main)' }}>
             Novo Relatório

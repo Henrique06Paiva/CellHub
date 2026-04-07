@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { fetchUsers, deleteUser } from '../../services/userService';
 import { useGlobal } from '../../contexts/GlobalContext';
+import LoadingFallback from '../../components/Common/LoadingFallback';
 import { Plus, Search, MoreVertical, Edit2, Trash2, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -140,7 +141,7 @@ const UserManagement = () => {
         </div>
 
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Carregando dados globais...</div>
+          <LoadingFallback />
         ) : (
           <>
             <div className="table-responsive-wrapper" style={{ flex: 1 }}>

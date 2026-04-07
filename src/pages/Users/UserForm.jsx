@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import LoadingFallback from '../../components/Common/LoadingFallback';
+import BackButton from '../../components/Common/BackButton';
 import { useGlobal } from '../../contexts/GlobalContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchUserById, updateUser } from '../../services/userService';
@@ -156,25 +158,14 @@ const UserForm = () => {
 
 
   if (fetchingUser) {
-    return (
-      <div style={{ height: 'calc(100vh - 5rem)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: 'var(--text-muted)' }}>Carregando dados do usuário...</div>
-      </div>
-    );
+    return <LoadingFallback />;
   }
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '3rem' }}>
       {/* Header Inline */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '2.5rem' }}>
-        <button 
-          onClick={() => navigate('/users')} 
-          style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--surface-color)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}
-          onMouseOver={e => e.currentTarget.style.background = 'var(--surface-hover)'}
-          onMouseOut={e => e.currentTarget.style.background = 'var(--surface-color)'}
-        >
-          <ArrowLeft size={20} color="var(--text-muted)" />
-        </button>
+          <BackButton to="/users" />
         <div>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-main)' }}>
             {id ? 'Editar Usuário' : 'Novo Usuário'}

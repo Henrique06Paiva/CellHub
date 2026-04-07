@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchReports } from '../../services/reportService';
 import { useAuth } from '../../contexts/AuthContext';
+import LoadingFallback from '../../components/Common/LoadingFallback';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Search, FileText, CalendarDays, UserPlus, Eye, TrendingUp, AlertTriangle, Download } from 'lucide-react';
 
@@ -281,7 +282,7 @@ const ReportsList = () => {
 
         {/* Table */}
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Carregando relatórios...</div>
+          <LoadingFallback />
         ) : (
           <>
             <div className="table-responsive-wrapper" style={{ flex: 1 }}>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchReportById } from '../../services/reportService';
+import LoadingFallback from '../../components/Common/LoadingFallback';
+import BackButton from '../../components/Common/BackButton';
 import { ArrowLeft, CalendarDays, Users, UserPlus, CheckCircle, XCircle, FileText, Camera, Download, Printer } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -68,11 +70,7 @@ const ReportDetails = () => {
   }, [id]);
 
   if (loading) {
-    return (
-      <div style={{ height: 'calc(100vh - 5rem)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: 'var(--text-muted)' }}>Carregando relatório...</div>
-      </div>
-    );
+    return <LoadingFallback />;
   }
 
   if (!report) {
@@ -93,14 +91,7 @@ const ReportDetails = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <button
-            onClick={() => navigate('/reports')}
-            style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--surface-color)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}
-            onMouseOver={e => e.currentTarget.style.background = 'var(--surface-hover)'}
-            onMouseOut={e => e.currentTarget.style.background = 'var(--surface-color)'}
-          >
-            <ArrowLeft size={20} color="var(--text-muted)" />
-          </button>
+          <BackButton to="/reports" />
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-main)' }}>Detalhes do Relatório</h1>
         </div>
         <button 

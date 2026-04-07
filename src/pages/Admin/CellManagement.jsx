@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchCells, deleteCell } from '../../services/cellService';
+import LoadingFallback from '../../components/Common/LoadingFallback';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Home, Plus, Edit2, Trash2, Users, Search, MoreVertical, ExternalLink, ShieldAlert, CheckCircle } from 'lucide-react';
@@ -72,7 +73,7 @@ const CellAdminManagement = () => {
       </div>
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Carregando...</p>
+        <LoadingFallback />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
           {filteredCells.map(cell => (

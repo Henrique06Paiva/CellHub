@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGlobal } from '../../contexts/GlobalContext';
 import { fetchNetworkById, saveNetwork } from '../../services/networkService';
+import LoadingFallback from '../../components/Common/LoadingFallback';
+import BackButton from '../../components/Common/BackButton';
 import { fetchUsers } from '../../services/userService';
 import { ArrowLeft, Globe, Camera, User, Mail, Search, Check, ChevronDown, Loader2, Phone, Calendar } from 'lucide-react';
 
@@ -192,14 +194,12 @@ const NetworkForm = () => {
     u.email?.toLowerCase().includes(searchUser.toLowerCase())
   );
 
-  if (fetching) return <div style={{ padding: '2rem' }}>Carregando dados...</div>;
+  if (fetching) return <LoadingFallback />;
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '3rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-        <button onClick={() => navigate('/admin/networks')} className="btn-icon">
-          <ArrowLeft size={20} />
-        </button>
+        <BackButton to="/admin/networks" />
         <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-main)' }}>
             {id ? 'Editar Rede' : 'Nova Rede'}
         </h1>

@@ -5,6 +5,8 @@ import { useGlobal } from '../../contexts/GlobalContext';
 import { fetchCellById, saveCell } from '../../services/cellService';
 import { fetchNetworks } from '../../services/networkService';
 import { fetchUsers } from '../../services/userService';
+import LoadingFallback from '../../components/Common/LoadingFallback';
+import BackButton from '../../components/Common/BackButton';
 import { ArrowLeft, Home, Camera, User, Mail, Search, Check, ChevronDown, Loader2, MapPin, Phone, Calendar } from 'lucide-react';
 
 const CellAdminForm = () => {
@@ -217,14 +219,12 @@ const CellAdminForm = () => {
     u.email?.toLowerCase().includes(searchUser.toLowerCase())
   );
 
-  if (fetching) return <div style={{ padding: '2rem' }}>Carregando dados...</div>;
+  if (fetching) return <LoadingFallback />;
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '3rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-        <button onClick={() => navigate('/admin/cells')} className="btn-icon">
-          <ArrowLeft size={20} />
-        </button>
+        <BackButton to="/admin/cells" />
         <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-main)' }}>
             {id ? 'Editar Célula' : 'Nova Célula'}
         </h1>

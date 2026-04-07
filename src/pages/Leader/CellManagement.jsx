@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import LoadingFallback from '../../components/Common/LoadingFallback';
 import { fetchCellById } from '../../services/cellService';
 import { fetchUsers } from '../../services/userService';
 import { fetchReports } from '../../services/reportService';
@@ -59,7 +60,7 @@ const CellManagement = () => {
     if (userData) loadLeadershipData();
   }, [userData]);
 
-  if (loading) return <div style={{ padding: '2rem' }}>Carregando dados da liderança da célula...</div>;
+  if (loading) return <LoadingFallback />;
   if (!myCell) return <div style={{ padding: '2rem' }}>Você não está designado(a) como líder de nenhuma célula ou os dados não foram encontrados.</div>;
 
   return (

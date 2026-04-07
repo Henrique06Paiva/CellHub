@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import LoadingFallback from '../../components/Common/LoadingFallback';
+import BackButton from '../../components/Common/BackButton';
 import { fetchUserById } from '../../services/userService';
 import { fetchReports } from '../../services/reportService';
 import { ArrowLeft, User, Mail, Phone, Calendar, Edit2, Shield, MapPin, Hash, Activity } from 'lucide-react';
@@ -60,11 +62,7 @@ const UserDetails = () => {
   }, [id, currentAuthUser]);
 
   if (loading) {
-    return (
-      <div style={{ height: 'calc(100vh - 5rem)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: 'var(--text-muted)' }}>Carregando perfil...</div>
-      </div>
-    );
+    return <LoadingFallback />;
   }
 
   if (!user) {
@@ -92,14 +90,7 @@ const UserDetails = () => {
       {/* Header Inline */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <button 
-            onClick={() => navigate('/users')} 
-            style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--surface-color)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}
-            onMouseOver={e => e.currentTarget.style.background = 'var(--surface-hover)'}
-            onMouseOut={e => e.currentTarget.style.background = 'var(--surface-color)'}
-          >
-            <ArrowLeft size={20} color="var(--text-muted)" />
-          </button>
+          <BackButton to="/users" />
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-main)' }}>Perfil do Usuário</h1>
         </div>
         

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchNetworks, deleteNetwork } from '../../services/networkService';
+import LoadingFallback from '../../components/Common/LoadingFallback';
 import { useGlobal } from '../../contexts/GlobalContext';
 import { useNavigate } from 'react-router-dom';
 import { Network, Plus, Edit2, Trash2, Users, Search, Globe } from 'lucide-react';
@@ -76,7 +77,7 @@ const NetworkManagement = () => {
       </div>
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Carregando redes...</p>
+        <LoadingFallback />
       ) : filteredNetworks.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
           {filteredNetworks.map(net => (

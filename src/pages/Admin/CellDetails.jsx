@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { fetchCellById } from '../../services/cellService';
 import { fetchUsers } from '../../services/userService';
 import { fetchReports } from '../../services/reportService';
+import LoadingFallback from '../../components/Common/LoadingFallback';
+import BackButton from '../../components/Common/BackButton';
 import { useAuth } from '../../contexts/AuthContext';
 import { Home, User, Users, MapPin, Calendar, ArrowLeft, Edit2, TrendingUp, Filter, FileText, Loader2 } from 'lucide-react';
 
@@ -38,16 +40,7 @@ const CellAdminDetails = () => {
     if (userData) loadCellDetails();
   }, [id, userData]);
 
-  if (loading) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6rem 2rem', color: 'var(--text-muted)' }}>
-      <div style={{ animation: 'spin 1s linear infinite', marginBottom: '1.5rem', color: 'var(--primary-color)' }}>
-        <Loader2 size={48} strokeWidth={2.5} />
-      </div>
-      <p style={{ fontSize: '1.25rem', fontWeight: '700', margin: 0, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>Carregando detalhes da célula...</p>
-      <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', opacity: 0.8 }}>Buscando informações, membros e relatórios recentes</p>
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
+  if (loading) return <LoadingFallback />;
   if (!cell) return <div style={{ padding: '2rem' }}>Célula não encontrada.</div>;
 
   // Calculo de frequência média fictício (baseado nos relatórios carregados)
@@ -58,9 +51,7 @@ const CellAdminDetails = () => {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
-        <button onClick={() => navigate('/admin/cells')} className="btn-icon">
-          <ArrowLeft size={20} />
-        </button>
+        <BackButton to="/admin/cells" />
         <div style={{ flex: 1 }}>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>Detalhes da Célula</h1>
           <p style={{ color: 'var(--text-muted)', margin: 0 }}>Análise técnica e acompanhamento</p>
