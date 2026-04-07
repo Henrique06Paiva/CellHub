@@ -3,56 +3,57 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Funções auxiliares
+    // Funções auxiliares de Segurança
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
     
     function isAdmin() {
       let role = getUserData().role;
-      return role == "lider" || role == "leader" || role == "discipulador" || role == "root";
+      return role in ['lider', 'leader', 'discipulador', 'root'];
     }
 
     function isRoot() {
-      return getUserData().role == "root";
+      return getUserData().role == 'root';
     }
 
-    // Regras da coleção 'counters' (contador sequencial de IDs)
+    // Coleção 'counters': Gerenciamento de IDs sequenciais
     match /counters/{counterId} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read, write: if isAuthenticated() && isAdmin();
     }
 
-    // Regras da coleção 'users'
+    // Coleção 'users': Perfis e RBAC
     match /users/{userId} {
-      // Qualquer usuário autenticado pode ler seu próprio documento
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      // Admins (lider, discipulador, root) podem listar/ler todos os usuários
-      allow read: if request.auth != null && isAdmin();
-      // Admins podem criar novos usuários
-      allow create: if request.auth != null && isAdmin();
-      // Root pode tudo
-      allow write: if request.auth != null && isRoot();
-      // Líderes podem editar membros da sua célula
-      allow update: if request.auth != null && getUserData().role == "lider" && resource.data.cellId == getUserData().cellId;
-      // Discipuladores podem editar membros da sua rede
-      allow update: if request.auth != null && getUserData().role == "discipulador" && resource.data.networkId == getUserData().networkId;
+      // Dono do perfil pode ler e editar seus próprios dados básicos
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Admins podem listar e criar usuários
+      allow read, create: if isAuthenticated() && isAdmin();
+      
+      // Regras granulares de atualização para Admins
+      allow update: if isAuthenticated() && (
+        isRoot() ||
+        (getUserData().role == 'discipulador' && resource.data.networkId == getUserData().networkId) ||
+        ((getUserData().role == 'lider' || getUserData().role == 'leader') && resource.data.cellId == getUserData().cellId)
+      );
     }
 
-    // Regras da coleção 'networks'
+    // Coleções Estruturais e Operacionais (Acessadas prioritariamente via API)
     match /networks/{networkId} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read, write: if isAuthenticated() && isAdmin();
     }
 
-    // Regras da coleção 'cells'
     match /cells/{cellId} {
-      allow read: if request.auth != null && isAdmin();
-      allow read: if request.auth != null && request.auth.uid != null;
-      allow write: if request.auth != null && isAdmin();
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isAdmin();
     }
 
-    // Regras da coleção 'reports' (Relatórios de presença)
     match /reports/{reportId} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read, write: if isAuthenticated() && isAdmin();
     }
   }
 }
