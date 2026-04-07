@@ -4,7 +4,7 @@ import { fetchCellById } from '../../services/cellService';
 import { fetchUsers } from '../../services/userService';
 import { fetchReports } from '../../services/reportService';
 import { useAuth } from '../../contexts/AuthContext';
-import { Home, User, Users, MapPin, Calendar, ArrowLeft, Edit2, TrendingUp, Filter, FileText } from 'lucide-react';
+import { Home, User, Users, MapPin, Calendar, ArrowLeft, Edit2, TrendingUp, Filter, FileText, Loader2 } from 'lucide-react';
 
 const CellAdminDetails = () => {
   const { id } = useParams();
@@ -18,17 +18,16 @@ const CellAdminDetails = () => {
   useEffect(() => {
     const loadCellDetails = async () => {
       try {
-        const cellData = await fetchCellById(id);
+        const [cellData, membersList, reportsList] = await Promise.all([
+          fetchCellById(id),
+          fetchUsers({ cellId: id }),
+          fetchReports(userData, { cellId: id })
+        ]);
+
         if (cellData) {
           setCell(cellData);
-          
-          // Fetch members
-          const membersList = await fetchUsers({ cellId: id });
-          setMembers(membersList);
-
-          // Fetch recent reports
-          const reportsList = await fetchReports(userData, { cellId: id });
-          setReports(reportsList.slice(0, 5));
+          setMembers(membersList || []);
+          setReports(reportsList ? reportsList.slice(0, 5) : []);
         }
       } catch (err) {
         console.error(err);
@@ -39,7 +38,16 @@ const CellAdminDetails = () => {
     if (userData) loadCellDetails();
   }, [id, userData]);
 
-  if (loading) return <div style={{ padding: '2rem' }}>Carregando detalhes...</div>;
+  if (loading) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6rem 2rem', color: 'var(--text-muted)' }}>
+      <div style={{ animation: 'spin 1s linear infinite', marginBottom: '1.5rem', color: 'var(--primary-color)' }}>
+        <Loader2 size={48} strokeWidth={2.5} />
+      </div>
+      <p style={{ fontSize: '1.25rem', fontWeight: '700', margin: 0, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>Carregando detalhes da célula...</p>
+      <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', opacity: 0.8 }}>Buscando informações, membros e relatórios recentes</p>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
   if (!cell) return <div style={{ padding: '2rem' }}>Célula não encontrada.</div>;
 
   // Calculo de frequência média fictício (baseado nos relatórios carregados)
