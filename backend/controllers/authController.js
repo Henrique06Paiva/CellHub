@@ -38,8 +38,20 @@ export const requestPasswordReset = async (req, res) => {
     }
 
     // 2. Gera o link de reset apontando para a tela customizada do frontend
+    const FALLBACK_URL = 'https://cellhub-henrique-dev.web.app';
+    const rawFrontendUrl = (process.env.FRONTEND_URL || '').trim();
+
+    // Valida se a env var é uma URL absoluta válida; caso contrário usa o fallback
+    let frontendBase;
+    try {
+      frontendBase = rawFrontendUrl ? new URL(rawFrontendUrl).origin : FALLBACK_URL;
+    } catch {
+      console.warn(`⚠️  FRONTEND_URL inválida ("${rawFrontendUrl}"), usando fallback: ${FALLBACK_URL}`);
+      frontendBase = FALLBACK_URL;
+    }
+
     const actionCodeSettings = {
-      url: `${process.env.FRONTEND_URL || 'https://cellhub-henrique-dev.web.app'}/reset-password`,
+      url: `${frontendBase}/reset-password`,
       handleCodeInApp: false, // false = Firebase redireciona para a URL acima com ?oobCode=
     };
 
