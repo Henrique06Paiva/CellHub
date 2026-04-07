@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Navigate, NavLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogOut, UserCircle2, Home, ShieldCheck, Network, Users as UsersIcon, PanelLeftClose, Menu, ChevronDown, FileText, Calendar, User, Globe } from 'lucide-react';
+import { LogOut, UserCircle2, Home, ShieldCheck, Network, Users as UsersIcon, PanelLeftClose, Menu, ChevronDown, FileText, Calendar, User, Globe, BarChart3 } from 'lucide-react';
 import { SeedDevTool } from '../SeedDevTool';
 
 const DashboardLayout = () => {
