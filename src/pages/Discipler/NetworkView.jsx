@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Network, Activity, Home, Users, AlertTriangle } from 'lucide-react';
+import { Network, TrendingUp, Home, Users, AlertTriangle, Map as MapIcon } from 'lucide-react';
 import { fetchNetworks, fetchNetworkById } from '../../services/networkService';
 import { fetchCells } from '../../services/cellService';
 import { fetchUserById, fetchUsers } from '../../services/userService';
 import { fetchReports } from '../../services/reportService';
+import { Box, VStack, HStack, Text, KPI, Card } from '../../components/core';
+import CellMap from '../../components/Discipler/CellMap';
 import LoadingFallback from '../../components/Common/LoadingFallback';
+import ErrorBoundary from '../../components/Common/ErrorBoundary';
 
 const NetworkView = () => {
   const { currentUser, userData } = useAuth();
@@ -15,6 +18,7 @@ const NetworkView = () => {
   const [leaders, setLeaders] = useState({});
   const [cellsMembersCount, setCellsMembersCount] = useState({});
   const [lowAttendanceSummary, setLowAttendanceSummary] = useState({});
+  const [growthData, setGrowthData] = useState({ count: 0, percentage: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,9 +36,37 @@ const NetworkView = () => {
         if (networkData) {
           setMyNetwork(networkData);
 
+          // 1. Fetch Cells
           const loadedCells = await fetchCells({ networkId: networkData.id });
           setCells(loadedCells);
 
+          // 2. Fetch All Members of the Network to calculate Growth
+          const allNetworkUsers = await fetchUsers({ networkId: networkData.id });
+          
+          const now = new Date();
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(now.getDate() - 30);
+
+          let newMembersCount = 0;
+          allNetworkUsers.forEach(user => {
+            if (user.createdAt) {
+              const createdDate = user.createdAt.toDate ? user.createdAt.toDate() : new Date(user.createdAt);
+              if (createdDate >= thirtyDaysAgo) {
+                newMembersCount++;
+              }
+            }
+          });
+
+          const totalMembersCount = allNetworkUsers.length;
+          const oldMembersCount = totalMembersCount - newMembersCount;
+          const growthPct = oldMembersCount > 0 ? Math.round((newMembersCount / oldMembersCount) * 100) : (newMembersCount > 0 ? 100 : 0);
+
+          setGrowthData({
+            count: newMembersCount,
+            percentage: growthPct
+          });
+
+          // 3. Process Cell Details (Leaders & Member Counts per cell)
           const lMap = {};
           const cMap = {};
           
@@ -43,13 +75,14 @@ const NetworkView = () => {
               const leaderData = await fetchUserById(cell.leaderId);
               if (leaderData) lMap[cell.leaderId] = leaderData;
             }
-            const cellMembers = await fetchUsers({ cellId: cell.id });
+            // Count members per cell
+            const cellMembers = allNetworkUsers.filter(u => u.cellId === cell.id);
             cMap[cell.id] = cellMembers.length;
           }
           setLeaders(lMap);
           setCellsMembersCount(cMap);
 
-          // Calculate low attendance summary for the network
+          // 4. Calculate low attendance summary
           const lowAttSum = {};
           const reports = await fetchReports(userData, { networkId: networkData.id });
           const recentReportsAll = reports.slice(0, 100);
@@ -58,12 +91,12 @@ const NetworkView = () => {
             const cellReports = recentReportsAll.filter(r => r.cellId === cell.id).slice(0, 4);
             if (cellReports.length === 0) continue;
 
-            const cellMembers = await fetchUsers({ cellId: cell.id });
+            const cellMembers = allNetworkUsers.filter(u => u.cellId === cell.id);
             let countLow = 0;
 
             for (const member of cellMembers) {
               const attendedCount = cellReports.filter(r => 
-                r.members?.some(m => m.uid === member.id && m.present)
+                r.members?.some(m => m.uid === (member.id || member.uid) && m.present)
               ).length;
               const pct = Math.round((attendedCount / cellReports.length) * 100);
               if (pct < 50) {
@@ -75,114 +108,141 @@ const NetworkView = () => {
             }
           }
           setLowAttendanceSummary(lowAttSum);
+        } else {
+          console.warn("[NetworkView] Nenhuma rede encontrada para o usuário.");
         }
       } catch (err) {
-        console.error("Erro ao carregar rede:", err);
+        console.error("[NetworkView] Erro crítico ao carregar dados da rede:", err);
       } finally {
         setLoading(false);
       }
     };
-    if (currentUser) loadNetworkDataCombined();
+    
+    if (currentUser) {
+      loadNetworkDataCombined();
+    } else if (loading) {
+      // Se não houver usuário e estiver carregando, damos um timeout para evitar loading infinito
+      const timeout = setTimeout(() => setLoading(false), 5000);
+      return () => clearTimeout(timeout);
+    }
   }, [currentUser, userData]);
 
   if (loading) return <LoadingFallback />;
-  if (!myNetwork) return <div style={{ padding: '2rem' }}>Você não possui explícitamente nenhuma rede vinculada ou os dados não foram encontrados.</div>;
+  
+  if (!myNetwork) {
+    return (
+      <Box p="xl" textAlign="center">
+        <Text color="textMuted">Você não possui nenhuma rede vinculada ou os dados não foram encontrados.</Text>
+      </Box>
+    );
+  }
 
   const totalMembers = Object.values(cellsMembersCount).reduce((acc, curr) => acc + curr, 0);
 
   return (
-    <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Network size={36} color="var(--primary-color)" /> Visão da Rede
-        </h1>
-        <p style={{ color: 'var(--text-muted)' }}>Acompanhamento geral da {myNetwork.name}</p>
-      </div>
+    <VStack gap="xl" pb="xxl">
+      {/* Header */}
+      <Box>
+        <HStack gap="md" mb="xs">
+          <Network size={36} color="var(--primary-color)" />
+          <Text size="3xl" weight="800">Visão da Rede</Text>
+        </HStack>
+        <Text color="textMuted">Acompanhamento estratégico e geográfico da {myNetwork.name}</Text>
+      </Box>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ background: 'rgba(99, 102, 241, 0.2)', padding: '1rem', borderRadius: '12px', color: 'var(--primary-color)' }}>
-            <Home size={28} />
-          </div>
-          <div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Total de Células</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: '800' }}>{cells.length}</div>
-          </div>
-        </div>
+      {/* KPI Section */}
+      <Box display="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+        <KPI 
+          label="Total de Células" 
+          value={cells.length} 
+          icon={Home} 
+          color="primary" 
+        />
+        <KPI 
+          label="Total de Membros" 
+          value={totalMembers} 
+          icon={Users} 
+          color="success" 
+          secondaryInfo="Membros ativos na rede"
+        />
+        <KPI 
+          label="Crescimento (30D)" 
+          value={`+${growthData.count}`} 
+          icon={TrendingUp} 
+          color="warning" 
+          trend={growthData.percentage}
+          secondaryInfo="Novos membros nos últimos 30 dias"
+        />
+      </Box>
 
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ background: 'rgba(16, 185, 129, 0.2)', padding: '1rem', borderRadius: '12px', color: 'var(--success-color)' }}>
-            <Users size={28} />
-          </div>
-          <div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Total de Membros</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: '800' }}>{totalMembers}</div>
-          </div>
-        </div>
+      {/* Map Section */}
+      <Box>
+        <HStack gap="sm" mb="md">
+          <MapIcon size={20} color="var(--primary-color)" />
+          <Text size="lg" weight="700">Geolocalização das Células</Text>
+        </HStack>
+        <ErrorBoundary fallback={
+          <Box height="400px" bg="surface" display="flex" alignItems="center" justifyContent="center" borderRadius="lg" border>
+            <Text color="danger">Ocorreu um erro ao carregar o mapa interativo.</Text>
+          </Box>
+        }>
+          <CellMap cells={cells} />
+        </ErrorBoundary>
+      </Box>
 
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ background: 'rgba(245, 158, 11, 0.2)', padding: '1rem', borderRadius: '12px', color: '#f59e0b' }}>
-            <Activity size={28} />
-          </div>
-          <div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Células Sem Líder</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: '800' }}>{cells.filter(c => !c.leaderId).length}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Low Attendance Summary Alert */}
+      {/* Alerts Section */}
       {Object.keys(lowAttendanceSummary).length > 0 && (
-        <div style={{ 
-          background: 'rgba(239, 68, 68, 0.05)',
-          border: '1px solid rgba(239, 68, 68, 0.2)',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          marginBottom: '2.5rem',
-          display: 'flex',
-          gap: '1.25rem',
-          alignItems: 'flex-start'
-        }}>
-          <div style={{ background: 'rgba(239, 68, 68, 0.15)', padding: '0.75rem', borderRadius: '10px', color: 'var(--danger-color)' }}>
-            <AlertTriangle size={28} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-main)' }}>Alertas de Baixa Frequência na Rede</h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              Identificamos membros com menos de 50% de presença nas seguintes células. Recomenda-se acompanhamento com os líderes:
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              {Object.entries(lowAttendanceSummary).map(([cellId, data]) => (
-                <div key={cellId} style={{ 
-                  background: 'var(--bg-color)', 
-                  border: '1px solid var(--border-color)', 
-                  padding: '0.5rem 1rem', 
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.6rem'
-                }}>
-                  <span style={{ fontWeight: '700', color: 'var(--primary-light)' }}>{data.cellName}</span>
-                  <div style={{ width: '1px', height: '14px', background: 'var(--border-color)' }} />
-                  <span style={{ fontSize: '0.85rem', color: 'var(--danger-color)', fontWeight: '600' }}>{data.count} membro{data.count !== 1 ? 's' : ''} em risco</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <Card bg="danger" style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+          <HStack gap="md" alignItems="flex-start">
+            <Box p="sm" borderRadius="md" bg="rgba(239, 68, 68, 0.15)" style={{ color: 'var(--danger-color)' }}>
+              <AlertTriangle size={24} />
+            </Box>
+            <VStack flex="1" gap="sm">
+              <VStack gap="xs">
+                <Text weight="700" size="lg">Alertas de Baixa Frequência</Text>
+                <Text size="sm" color="textMuted">
+                  Identificamos membros com menos de 50% de presença. Recomenda-se atenção especial:
+                </Text>
+              </VStack>
+              <HStack gap="sm" style={{ flexWrap: 'wrap' }}>
+                {Object.entries(lowAttendanceSummary).map(([cellId, data]) => (
+                  <Box 
+                    key={cellId} 
+                    p="xs" px="md"
+                    borderRadius="md" 
+                    bg="surface" 
+                    border 
+                    display="flex" 
+                    alignItems="center" 
+                    gap="sm"
+                  >
+                    <Text weight="700" color="primaryLight" size="sm" style={{ whiteSpace: 'nowrap' }}>{data.cellName}</Text>
+                    <Box width="1px" height="12px" bg="border" />
+                    <Text size="xs" color="danger" weight="700" style={{ whiteSpace: 'nowrap' }}>
+                      {data.count} em risco
+                    </Text>
+                  </Box>
+                ))}
+              </HStack>
+            </VStack>
+          </HStack>
+        </Card>
       )}
 
-      <div className="glass-panel" style={{ padding: '1.5rem' }}>
-        <h2 style={{ marginBottom: '1.5rem' }}>Células da Rede</h2>
+      {/* Detailed Table Section */}
+      <Card p="none" style={{ overflow: 'hidden' }}>
+        <Box p="lg" borderBottom>
+          <Text size="lg" weight="700">Detalhamento das Células</Text>
+        </Box>
         
         {cells.length > 0 ? (
           <div className="table-responsive-wrapper">
-            <table className="data-table" style={{ minWidth: '600px' }}>
+            <table className="data-table">
               <thead>
                 <tr>
                   <th>Célula</th>
                   <th>Líder</th>
-                  <th>Endereço</th>
+                  <th>Endereço / CEP</th>
                   <th>Membros</th>
                 </tr>
               </thead>
@@ -191,10 +251,23 @@ const NetworkView = () => {
                   const leader = leaders[cell.leaderId];
                   return (
                     <tr key={cell.id}>
-                      <td style={{ fontWeight: '600', color: 'var(--primary-hover)' }}>{cell.name}</td>
-                      <td>{leader ? leader.name : <span style={{ color: 'var(--danger-color)', fontSize: '0.85rem' }}>Sem Líder</span>}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>{cell.address}</td>
-                      <td>{cellsMembersCount[cell.id] || 0}</td>
+                      <td style={{ fontWeight: '700', color: 'var(--primary-color)' }}>{cell.name}</td>
+                      <td>
+                        {leader ? (
+                           <Text size="sm">{leader.name}</Text>
+                        ) : (
+                          <Text size="xs" color="danger" weight="600">Sem Líder</Text>
+                        )}
+                      </td>
+                      <td>
+                        <VStack gap="none">
+                          <Text size="sm">{cell.address || 'Sem endereço'}</Text>
+                          {cell.cep && <Text size="xs" color="textMuted">CEP: {cell.cep}</Text>}
+                        </VStack>
+                      </td>
+                      <td>
+                        <Text weight="700">{cellsMembersCount[cell.id] || 0}</Text>
+                      </td>
                     </tr>
                   );
                 })}
@@ -202,10 +275,12 @@ const NetworkView = () => {
             </table>
           </div>
         ) : (
-          <p style={{ color: 'var(--text-muted)' }}>Nenhuma célula associada a esta rede encontrada.</p>
+          <Box p="xl" textAlign="center">
+            <Text color="textMuted">Nenhuma célula associada a esta rede encontrada.</Text>
+          </Box>
         )}
-      </div>
-    </div>
+      </Card>
+    </VStack>
   );
 };
 
