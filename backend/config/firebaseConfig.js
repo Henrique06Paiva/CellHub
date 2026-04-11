@@ -7,24 +7,27 @@ dotenv.config();
 
 let serviceAccount;
 
+console.log(`🕒 Server Time: ${new Date().toString()}`);
+
 try {
-  // Lê do arquivo local em desenvolvimento
-  const keyPath = path.resolve('./serviceAccountKey.json');
-  if (fs.existsSync(keyPath)) {
-    serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
-    console.log('✅ Service Account carregada do arquivo local.');
-  } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    // Para produção usando string em Base64 configurada na Render/Railway
-    console.log(`📦 Env var FIREBASE_SERVICE_ACCOUNT encontrada (${process.env.FIREBASE_SERVICE_ACCOUNT.length} chars).`);
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    // RECOMENDADO: Prioriza variável de ambiente (base64) para deploy seguro
+    console.log(`📦 Usando FIREBASE_SERVICE_ACCOUNT da env var (${process.env.FIREBASE_SERVICE_ACCOUNT.length} chars).`);
     const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, 'base64').toString('utf8');
     serviceAccount = JSON.parse(decoded);
-    console.log('✅ Service Account carregada da env var (base64).');
+    console.log('✅ Service Account carregada e parseada com sucesso da env var.');
   } else {
-    console.warn('❌ Nem o arquivo serviceAccountKey.json nem a env var FIREBASE_SERVICE_ACCOUNT foram encontrados.');
-    console.warn('   Variáveis de ambiente disponíveis:', Object.keys(process.env).filter(k => k.includes('FIREBASE')).join(', ') || '(nenhuma com FIREBASE)');
+    // Fallback para arquivo local (desenvolvimento)
+    const keyPath = path.resolve('./serviceAccountKey.json');
+    if (fs.existsSync(keyPath)) {
+      serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+      console.log('✅ Service Account carregada do arquivo local (fallback).');
+    } else {
+      console.warn('❌ NENHUMA CREDENCIAL ENCONTRADA (Env var ou arquivo).');
+    }
   }
 } catch (error) {
-  console.error('❌ Erro ao ler a service account do Firebase:', error.message);
+  console.error('❌ Erro crítico ao processar credenciais:', error.message);
 }
 
 // Previne reinicialização caso o Express faça soft reloads
