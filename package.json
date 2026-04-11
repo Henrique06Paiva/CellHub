@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "deploy": "npm run build && firebase deploy --only hosting",
+    "deploy:square": "npm run build && rm -rf backend/dist && cp -r dist backend/dist",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"

@@ -1,0 +1,33 @@
+name: Deploy Nexo-Hub to Square Cloud
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Frontend and Prepare Backend
+        run: npm run deploy:square
+
+      - name: Deploy to Square Cloud
+        uses: squarecloudofc/github-action@v2
+        with:
+          token: ${{ secrets.SQUARE_TOKEN }}
+          command: commit ${{ secrets.SQUARE_APPLICATION_ID }} --restart
+          workdir: backend
