@@ -38,7 +38,7 @@ const ProgressBar = () => {
       position: 'fixed',
       top: 0,
       left: 0,
-      height: '2px',
+      height: '3px',
       background: 'linear-gradient(to right, var(--secondary-color), var(--primary-color))',
       width: `${width}%`,
       zIndex: 10001,
