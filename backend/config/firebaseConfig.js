@@ -39,5 +39,8 @@ if (!admin.apps.length && serviceAccount) {
 
 // Exportamos instâncias prontas para acessar DB e Autenticação pelo Node
 export const db = admin.apps.length ? admin.firestore() : null;
+if (db) {
+  db.settings({ preferRest: true });
+}
 export const auth = admin.apps.length ? admin.auth() : null;
 export default admin;
