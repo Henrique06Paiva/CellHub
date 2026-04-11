@@ -21,8 +21,19 @@ const createTransporter = () =>
  * @param {string} resetLink - Link gerado pelo Firebase Admin SDK
  */
 export const sendPasswordResetEmail = async (toEmail, resetLink) => {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_PASS;
+
+  if (!user || !pass) {
+    console.error('❌ ERRO CRÍTICO: GMAIL_USER ou GMAIL_PASS não definidos no arquivo .env');
+    throw new Error('Configuração de e-mail ausente.');
+  }
+
+  console.log(`📧 Tentando enviar e-mail de reset para: ${toEmail}...`);
+
   const transporter = createTransporter();
 
+  // ... (html code ...)
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -141,10 +152,18 @@ export const sendPasswordResetEmail = async (toEmail, resetLink) => {
 </body>
 </html>`;
 
-  await transporter.sendMail({
-    from: `"Nexo-Hub" <${process.env.GMAIL_USER}>`,
-    to: toEmail,
-    subject: 'Redefinição de senha — Nexo-Hub',
-    html,
-  });
+  try {
+    const info = await transporter.sendMail({
+      from: `"Nexo-Hub" <${user}>`,
+      to: toEmail,
+      subject: 'Redefinição de senha — Nexo-Hub',
+      html,
+    });
+
+    console.log(`✅ E-mail enviado com sucesso! MessageId: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error('❌ FALHA ao enviar e-mail via Nodemailer:', error);
+    throw error;
+  }
 };
