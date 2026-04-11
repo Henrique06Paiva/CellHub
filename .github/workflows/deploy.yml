@@ -29,5 +29,5 @@ jobs:
         uses: squarecloudofc/github-action@v2
         with:
           token: ${{ secrets.SQUARE_TOKEN }}
-          command: commit ${{ secrets.SQUARE_APPLICATION_ID }} --restart
+          command: commit ${{ secrets.SQUARE_APPLICATION_ID }}
           workdir: backend
