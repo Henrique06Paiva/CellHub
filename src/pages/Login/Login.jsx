@@ -103,12 +103,15 @@ const Login = () => {
       console.error('Erro de Autenticação:', err);
       
       if (isForgotPassword) {
-        // Trata erros do backend (Axios) e do Firebase Auth
+        // Trata erros de requisição à API (Backend)
         if (err.response) {
-          // Erro HTTP do backend (ex: 404 = email não cadastrado)
-          setAuthError(err.response.data?.error || 'Nenhuma conta encontrada com este e-mail.');
+          // Erro HTTP vindo do backend (ex: 404, 500)
+          setAuthError(err.response.data?.error || 'Erro interno ao processar a solicitação.');
+        } else if (err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED' || err.code === 'ERR_CONNECTION_REFUSED') {
+          // Servidor offline ou bloqueado por CORS
+          setAuthError('O servidor de autenticação está offline. Verifique se o backend está rodando.');
         } else if (err.code) {
-          // Erro do Firebase Auth
+          // Outros erros com código (Firebase ou Axios)
           switch (err.code) {
             case 'auth/user-not-found':
               setAuthError('Nenhuma conta encontrada com este e-mail.');
@@ -126,6 +129,7 @@ const Login = () => {
           setAuthError('Não foi possível enviar o e-mail. Tente novamente mais tarde.');
         }
       } else {
+        // Trata erros do login direto (Firebase Client SDK)
         switch (err.code) {
           case 'auth/invalid-credential':
           case 'auth/user-not-found':
