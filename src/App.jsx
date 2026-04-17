@@ -33,6 +33,13 @@ const CellAdminManagement = React.lazy(() => import('./pages/Admin/CellManagemen
 const CellAdminForm = React.lazy(() => import('./pages/Admin/CellForm'));
 const CellAdminDetails = React.lazy(() => import('./pages/Admin/CellDetails'));
 
+// Events Module
+const EventList = React.lazy(() => import('./pages/Events/EventList'));
+const EventForm = React.lazy(() => import('./pages/Events/EventForm'));
+const EventDetails = React.lazy(() => import('./pages/Events/EventDetails'));
+const EventTicket = React.lazy(() => import('./pages/Events/EventTicket'));
+const CheckinScanner = React.lazy(() => import('./pages/Events/CheckinScanner'));
+
 // Root Setup (Temporary)
 import RootSetup from './components/Admin/RootSetup';
 
@@ -203,6 +210,38 @@ function App() {
                 <Route path="/reports/:id" element={
                   <ProtectedRoute allowedRoles={['lider', 'leader', 'discipulador', 'root']}>
                     <ReportDetails />
+                  </ProtectedRoute>
+                } />
+
+                {/* Events Module */}
+                <Route path="/events" element={
+                  <ProtectedRoute>
+                    <EventList />
+                  </ProtectedRoute>
+                } />
+                <Route path="/events/new" element={
+                  <ProtectedRoute allowedRoles={['root', 'discipulador', 'lider', 'leader']}>
+                    <EventForm />
+                  </ProtectedRoute>
+                } />
+                <Route path="/events/:id/edit" element={
+                  <ProtectedRoute allowedRoles={['root', 'discipulador', 'lider', 'leader']}>
+                    <EventForm />
+                  </ProtectedRoute>
+                } />
+                <Route path="/events/:id" element={
+                  <ProtectedRoute>
+                    <EventDetails />
+                  </ProtectedRoute>
+                } />
+                <Route path="/events/:id/ticket" element={
+                  <ProtectedRoute>
+                    <EventTicket />
+                  </ProtectedRoute>
+                } />
+                <Route path="/events/:id/checkin" element={
+                  <ProtectedRoute allowedRoles={['root', 'discipulador', 'lider', 'leader']}>
+                    <CheckinScanner />
                   </ProtectedRoute>
                 } />
               </Route>

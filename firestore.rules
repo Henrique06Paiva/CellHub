@@ -55,5 +55,34 @@ service cloud.firestore {
     match /reports/{reportId} {
       allow read, write: if isAuthenticated() && isAdmin();
     }
+
+    // Coleção 'events': Gestão de Eventos
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isAdmin();
+      allow update, delete: if isAuthenticated() && (
+        isRoot() || resource.data.createdBy == request.auth.uid
+      );
+
+      // Subcoleção 'registrations': Inscrições de membros
+      match /registrations/{regId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated();
+        allow update: if isAuthenticated() && isAdmin();
+        allow delete: if isAuthenticated() && (
+          resource.data.userId == request.auth.uid || isAdmin()
+        );
+      }
+
+      // Subcoleção 'gallery': Mural de Memórias
+      match /gallery/{photoId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated(); // API valida check-in
+        allow update: if isAuthenticated() && isAdmin();
+        allow delete: if isAuthenticated() && (
+          resource.data.uploadedBy == request.auth.uid || isAdmin()
+        );
+      }
+    }
   }
 }

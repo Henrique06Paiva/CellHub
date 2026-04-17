@@ -165,10 +165,10 @@ const DashboardLayout = () => {
                 {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Relatórios</span>}
               </NavLink>
 
-              <button className="nav-item" disabled style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0', opacity: 0.35, cursor: 'not-allowed', background: 'transparent', border: 'none', color: 'var(--text-muted)', width: '100%' }} title="Gestão de Eventos (Em breve)">
+              <NavLink to="/events" className={({ isActive }) => isActive ? 'nav-item solid-active' : 'nav-item'} style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center', padding: isSidebarOpen ? '0.75rem 1rem' : '0.75rem 0' }} title="Gestão de Eventos">
                 <Calendar size={20} style={{ flexShrink: 0 }} />
                 {isSidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>Gestão de Eventos</span>}
-              </button>
+              </NavLink>
            </div>
         </div>
       </nav>

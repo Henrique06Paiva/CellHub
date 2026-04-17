@@ -26,6 +26,7 @@ import cellRoutes from './routes/cellRoutes.js';
 import networkRoutes from './routes/networkRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import eventRoutes from './routes/eventRoutes.js';
 
 // Middlewares Globais de Segurança (Configurado para permitir Firebase)
 app.use(
@@ -64,6 +65,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/cells', cellRoutes);
 app.use('/api/networks', networkRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/events', eventRoutes);
 
 // Configuração para servir o Frontend (React) após o build
 const distPath = path.join(__dirname, 'dist');
